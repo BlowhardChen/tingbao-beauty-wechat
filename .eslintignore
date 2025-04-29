@@ -1,0 +1,22 @@
+*.sh
+node_modules
+*.md
+*.woff
+*.ttf
+.vscode
+.idea
+dist
+/public
+/docs
+.husky
+.local
+/bin
+/src/mock/*
+stats.html
+# 忽略打包的文件
+unpackage
+# 忽略uni-app官方的组件库错误和警告，官方的竟然通不过...
+components/uni-**
+**/uni_modules/**
+src/js_sdk/**
+

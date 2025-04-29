@@ -1,0 +1,10 @@
+/dist/*
+/public/*
+public/*
+stats.html
+# 忽略打包的文件
+src/unpackage
+src/androidPrivacy.json
+# 忽略uni-app官方的组件库错误和警告，官方的竟然通不过...
+src/components/uni-**
+
