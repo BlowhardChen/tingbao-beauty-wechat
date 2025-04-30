@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { GlobalUser, UserState } from '@/types/user'
+import type { GlobalUser, UserState } from '../../types/user'
 
 export const useUserInfoStore = defineStore('user-store', {
   state: (): UserState => ({

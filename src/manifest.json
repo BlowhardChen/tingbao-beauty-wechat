@@ -1,31 +1,30 @@
 {
-  "name": "tingbao-beauty-wechat",
-  "appid": "__UNI__937FD9A",
-  "versionName": "1.0.0",
-  "versionCode": "100",
-  "transformPx": false,
-  "mp-weixin": {
-    "appid": "wx1234567890abcdef",
-    "setting": {
-      "urlCheck": false,
-      "es6": true,
-      "postcss": true,
-      "minified": true,
-      "nodeModules": true
+    "name" : "tingbao-beauty-wechat",
+    "appid" : "__UNI__937FD9A",
+    "versionName" : "1.0.0",
+    "versionCode" : "100",
+    "transformPx" : false,
+    "mp-weixin" : {
+        "appid" : "wxfc61d7ddfa891a31",
+        "setting" : {
+            "urlCheck" : false,
+            "es6" : true,
+            "postcss" : true,
+            "minified" : true,
+            "nodeModules" : true
+        },
+        "usingComponents" : true,
+        "optimization" : {
+            "subPackages" : true
+        },
+        "permission" : {
+            "scope.userLocation" : {
+                "desc" : "获取店面位置与用户的距离"
+            }
+        }
     },
-    "usingComponents": true,
-    "vueOptions": {
-      "runtimeCompiler": true,
-      "hbuilderx": {
-        "useVite": true
-      }
-    },
-    "optimization": {
-      "subPackages": true
+    "vueVersion" : "3",
+    "uniStatistics" : {
+        "enable" : false
     }
-  },
-  "vueVersion": "3",
-  "uniStatistics": {
-    "enable": false
-  }
 }

@@ -1,20 +1,11 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig } from 'vite'
 import uni from '@dcloudio/vite-plugin-uni'
 import { resolve } from 'path'
 
 const pathResolve = (dir: string): string => resolve(__dirname, 'src', dir)
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
-
+export default defineConfig(() => {
   return {
-    define: {
-      'process.env': {
-        NODE_ENV: JSON.stringify(mode),
-        API_BASE: JSON.stringify(env.VITE_API_BASE),
-      },
-      'import.meta.env': JSON.stringify(env),
-    },
     plugins: [uni()],
     resolve: {
       alias: [

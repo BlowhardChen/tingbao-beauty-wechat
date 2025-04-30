@@ -5,14 +5,17 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@": ["src"],
+      "@/*": ["src/*"],
+      "@/types/*": ["../types/*"]
     },
     "lib": ["esnext", "dom"],
     "types": [
       "@dcloudio/types",
       "miniprogram-api-typings",
       "@uni-helper/uni-app-types",
-      "@uni-helper/uni-ui-types"
+      "@uni-helper/uni-ui-types",
+      "vite/client" // 增加 Vite 类型支持
     ]
   },
   // 校验 uni-app 组件类型
@@ -25,7 +28,8 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "types/**/*.ts",
-    "types/*.ts"
+    "src/types/**/*.ts",
+    "src/types/*.ts",
+    "*.d.ts"
   ]
 }

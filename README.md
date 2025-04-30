@@ -70,14 +70,14 @@ pnpm commit
 │   ├── types                 # 类型声明文件
 │   ├── utils                 # 全局方法
 │   ├── components            # 全局组件
+│   ├── styles                # 全局样式
+│   ├── types                 # 类型声明文件
+│   ├── utils                 # 全局方法
 │   ├── App.vue               # 入口页面
 │   ├── manifest.json         # 配置appid等打包信息
 │   ├── pages.json            # 配置页面路由等页面类信息
 │   ├── uni.scss              # uni-app 内置的常用样式变量
 │   └── main.ts               # Vue初始化入口文件
-├── styles                    # 全局样式
-├── types                     # 类型声明文件
-├── utils                     # 全局方法
 ├── .eslintrc.cjs             # eslint 配置
 ├── .prettierrc.json          # prettier 配置
 ├── .gitignore                # git 忽略文件
