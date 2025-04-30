@@ -1,38 +1,47 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import uni from '@dcloudio/vite-plugin-uni'
 import { resolve } from 'path'
 
-const pathResolve = (dir: string): string => resolve(__dirname, '.', dir)
+const pathResolve = (dir: string): string => resolve(__dirname, 'src', dir)
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  build: {
-    sourcemap: true,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        // 生产环境去除console
-        drop_console: true,
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+
+  return {
+    define: {
+      'process.env': {
+        NODE_ENV: JSON.stringify(mode),
+        API_BASE: JSON.stringify(env.VITE_API_BASE),
       },
-      sourceMap: true,
+      'import.meta.env': JSON.stringify(env),
     },
-  },
-  esbuild: {
-    target: 'esnext', // 配置目标环境为 esnext
-    jsxFactory: 'h',
-    jsxFragment: 'Fragment',
-  },
-  optimizeDeps: {
-    include: ['axios'], // 确保 axios 被正确优化
-  },
-  plugins: [uni()],
-  resolve: {
-    alias: [{ find: '@', replacement: pathResolve('src') }],
-  },
-  server: {
-    port: 8848,
-    open: true,
-    host: '0.0.0.0',
-    hmr: true,
-  },
+    plugins: [uni()],
+    resolve: {
+      alias: [
+        {
+          find: '@',
+          replacement: pathResolve(''),
+          customResolver: (id) => {
+            if (id.startsWith('@/assets')) {
+              return id.replace('@', pathResolve('')) + '?url'
+            }
+            return id
+          },
+        },
+      ],
+    },
+    server: {
+      open: true,
+      host: '0.0.0.0',
+      port: 8888,
+      hmr: {
+        overlay: true, // 显示热更新错误提示
+        protocol: 'ws', // 使用 WebSocket 协议
+        host: 'localhost',
+      },
+      watch: {
+        usePolling: true, // 解决部分系统文件监听失效问题
+      },
+    },
+  }
 })

@@ -1,6 +1,6 @@
 {
-  "name": "diyue-app",
-  "version": "1.0.8.0",
+  "name": "tingbao-beauty-wechat",
+  "version": "1.0.0.",
   "scripts": {
     "dev:app": "uni -p app",
     "dev:app-android": "uni -p app-android",

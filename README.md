@@ -63,30 +63,28 @@ pnpm commit
 ├── .vscode                   # VS Code 插件 + 设置
 ├── dist                      # 打包文件夹（可删除重新打包）
 ├── components                # 全局组件
-├── pages                     # 项目所有页面
-├── services                  # 所有请求
-├── static                    # 存放应用引用的本地静态资源的目录
-│   ├── images                # 普通图片
-│   └── tabs                  # tabBar 图片
-├── stores                    # 全局 pinia store
-│   ├── modules               # 模块
-│   └── index.ts              # store 入口
-├──  styles                   # 全局样式
+├── src/                      # 源代码
+│   ├── assets                # 存放应用引用的本地静态资源的目录
+│   ├── pages                 # 页面目录
+│   ├── store                 # pinia 状态管理
+│   ├── types                 # 类型声明文件
+│   ├── utils                 # 全局方法
+│   ├── components            # 全局组件
+│   ├── App.vue               # 入口页面
+│   ├── manifest.json         # 配置appid等打包信息
+│   ├── pages.json            # 配置页面路由等页面类信息
+│   ├── uni.scss              # uni-app 内置的常用样式变量
+│   └── main.ts               # Vue初始化入口文件
+├── styles                    # 全局样式
 ├── types                     # 类型声明文件
-├──  utils                    # 全局方法
-├──  App.vue                  # 入口页面
-├──  main.ts                  # Vue初始化入口文件
-├──  pages.json               # 配置页面路由等页面类信息
-├──  manifest.json            # 配置appid等打包信息
-├──  uni.scss                 # uni-app 内置的常用样式变量
+├── utils                     # 全局方法
 ├── .eslintrc.cjs             # eslint 配置
 ├── .prettierrc.json          # prettier 配置
 ├── .gitignore                # git 忽略文件
 ├── .stylelintrc.cjs          # stylelint 忽略文件
 ├── commitlint.config.cjs     # commitlint 配置
 ├── lint-staged.config.cjs    # lint-staged 配置
-├── index.html                # H5 端首页
-├── env.ts                    # 环境变量
+├── index.html                # H5端首页
 ├── package.json              # package.json 依赖
 ├── tsconfig.json             # typescript 配置
 └── vite.config.ts            # vite 配置

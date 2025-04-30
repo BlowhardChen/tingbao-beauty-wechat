@@ -21,14 +21,11 @@
     "nativeTags": ["block", "component", "template", "slot"]
   },
   "include": [
-    "pages/**/*.ts",
-    "pages/**/*.d.ts",
-    "pages/**/*.tsx",
-    "pages/**/*.vue",
-    "declare.d.ts",
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
     "types/**/*.ts",
-    "types/*.ts",
-    "utils/diyueMqtt.ts",
-    "utils/androidPermission.js"
+    "types/*.ts"
   ]
 }
