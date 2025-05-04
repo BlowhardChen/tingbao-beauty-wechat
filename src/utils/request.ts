@@ -1,4 +1,3 @@
-import '@dcloudio/types'
 import { useUserInfoStore } from '@/stores'
 
 /** API 基础地址 */

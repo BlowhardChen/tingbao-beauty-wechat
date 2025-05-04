@@ -1,8 +1,6 @@
 ### 项目简介
 
-项目使用uniapp搭建，以vue3 + ts + pinia + uni-ui开发，配合husky,prettier,eslint,cz-g,lint-staged等规范项目，可发布安卓和 ios。
-
-地图使用高德地图叠加谷歌卫星影像，部分页面使用 5+app 的原生 plus 对象
+项目使用uniapp搭建，以vue3 + ts + pinia + uni-ui开发，配合husky,prettier,eslint,cz-g,lint-staged等规范项目。
 
 ### 运行程序
 
@@ -20,10 +18,11 @@ pnpm i --registry=https://registry.npmmirror.com
 
 ```shell
 # H5端
-npm run dev:h5
+pnpm run dev:h5
 
-# App端
-需 HbuilderX 工具，运行 - 运行到手机或模拟器
+# 微信小程序
+pnpm dev:mp-weixin
+然后使用微信开发者工具打开dist/dev/mp-weixi目录即可
 ```
 
 每次提交代码前需执行下述步骤

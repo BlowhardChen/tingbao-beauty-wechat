@@ -12,15 +12,10 @@ export default defineConfig(() => {
         {
           find: '@',
           replacement: pathResolve(''),
-          customResolver: (id) => {
-            if (id.startsWith('@/assets')) {
-              return id.replace('@', pathResolve('')) + '?url'
-            }
-            return id
-          },
         },
       ],
     },
+
     server: {
       open: true,
       host: '0.0.0.0',
