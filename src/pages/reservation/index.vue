@@ -15,7 +15,7 @@
           <view class="business-hours flex-row">
             <image class="icon" src="@/static/reservation/icon-time.png" mode="scaleToFill" />
             <view class="business-hours-desc flex-row">
-              <view class="business-type">营业中</view>
+              <view :class="businessStatus.colorClass">{{ businessStatus.text }}</view>
               <text> 周一至周日 11:00~22:00 </text>
             </view>
           </view>
@@ -23,7 +23,7 @@
             <view class="address flex-row">
               <image class="icon" src="@/static/reservation/icon-location.png" mode="scaleToFill" />
               <view class="address-desc">
-                <text>深南大道深圳市南山区华润置地大厦E座18H-1</text>
+                <text>深圳市福田区KK ONE商场4F联娱影城前台左侧</text>
               </view>
             </view>
             <view class="icon-group flex-row">
@@ -32,24 +32,31 @@
                 src="@/static/reservation/icon-location-red.png"
                 mode="scaleToFill"
                 style="margin-right: 32rpx"
+                @click="openMapLocation"
               />
               <image
                 class="icon-item"
                 src="@/static/reservation/icon-phone.png"
                 mode="scaleToFill"
+                @click="callPhone"
               />
             </view>
           </view>
         </view>
-        <!-- 预约时间-->
-        <CalenDar />
+        <!-- 预约时间组件-->
+        <CalenDar @select-time="selectTime" />
         <!-- 选择项目 -->
         <view class="select-project flex-row" @click="selectProject">
           <view class="select-project-title">
             <text>服务项目</text>
           </view>
           <view class="select-input">
-            <input type="text" placeholder="请选择" />
+            <input
+              type="text"
+              placeholder="请选择"
+              v-model="reservationForm.project"
+              :disabled="true"
+            />
           </view>
           <image
             class="project-icon"
@@ -63,7 +70,7 @@
             <text>预约人</text>
           </view>
           <view class="select-input">
-            <input type="text" placeholder="请输入" />
+            <input type="text" placeholder="请输入" v-model="reservationForm.name" />
           </view>
         </view>
         <!-- 预约号码 -->
@@ -72,7 +79,7 @@
             <text>预约号码</text>
           </view>
           <view class="select-input">
-            <input type="text" placeholder="请输入" />
+            <input type="text" placeholder="请输入" v-model="reservationForm.phone" />
           </view>
         </view>
       </view>
@@ -92,13 +99,58 @@
   import CalenDar from '@/components/common/calendar.vue'
   import { onShow } from '@dcloudio/uni-app'
   import SuccessPopup from '@/components/common/success-popup.vue'
-  import { ref } from 'vue'
+  import { computed, reactive, ref } from 'vue'
+
+  // 计算当前时间
+  const currentTime = new Date()
+  const currentHour = currentTime.getHours()
+
+  // 营业时间：11:00 - 22:00
+  const businessStartHour = 11
+  const businessEndHour = 22
+
+  // 计算营业状态
+  const businessStatus = computed(() => {
+    if (currentHour >= businessStartHour && currentHour < businessEndHour) {
+      return { text: '营业中', colorClass: 'business-open' }
+    } else {
+      return { text: '已休息', colorClass: 'business-closed' }
+    }
+  })
+
+  // 打开地图位置
+  const openMapLocation = (): void => {
+    uni.openLocation({
+      latitude: 22.528304, // 纬度
+      longitude: 114.027462, // 经度
+      name: '婷宝美业',
+      address: '深圳市福田区KK ONE商场4F联娱影城前台左侧',
+      scale: 18,
+    })
+  }
+
+  // 拨打电话
+  const callPhone = (): void => {
+    uni.makePhoneCall({
+      phoneNumber: '13333333333', // 电话号码
+    })
+  }
+
+  const reservationForm = reactive({
+    project: '',
+    name: '',
+    phone: '',
+  })
 
   // 选择项目
   const selectProject = (): void => {
     uni.navigateTo({
       url: '/pages/project/index',
     })
+  }
+
+  const selectTime = (data: any): void => {
+    console.log('selectTime', data)
   }
 
   const isShowSuccessPopup = ref(false)
@@ -203,12 +255,33 @@
     color: #666;
   }
 
-  .business-type {
+  /* 正常营业时的样式 */
+  .business-open {
     padding: 0 16rpx;
     margin-right: 8rpx;
     font-size: 20rpx;
     color: rgb(8 174 60 / 80%);
     background-color: rgb(8 174 60 / 10%);
+    border-radius: 16rpx;
+  }
+
+  /* 休息时的样式 */
+  .business-closed {
+    padding: 0 16rpx;
+    margin-right: 8rpx;
+    font-size: 20rpx;
+    color: rgb(170 170 170); /* 灰色 */
+    background-color: rgb(170 170 170 / 20%); /* 灰色背景 */
+    border-radius: 16rpx;
+  }
+
+  /* 休息时的样式 */
+  .business-closed {
+    padding: 0 16rpx;
+    margin-right: 8rpx;
+    font-size: 20rpx;
+    color: rgb(170 170 170); /* 灰色 */
+    background-color: rgb(170 170 170 / 20%); /* 灰色背景 */
     border-radius: 16rpx;
   }
 
@@ -218,6 +291,7 @@
   }
 
   .address {
+    align-items: center;
     justify-content: flex-start;
     padding-top: 16rpx;
     margin-right: 24rpx;
@@ -252,7 +326,7 @@
     padding-left: 48rpx;
     font-size: 32rpx;
     font-weight: 400;
-    color: #999;
+    color: #fe9393;
   }
 
   .project-icon {

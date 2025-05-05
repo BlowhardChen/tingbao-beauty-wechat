@@ -47,7 +47,7 @@
                   <text style="font-size: 28rpx">￥</text>
                   <text>99</text>
                 </view>
-                <view class="button">选择</view>
+                <view class="button" @click="selectProject">选择</view>
               </view>
             </view>
           </view>
@@ -67,20 +67,22 @@
     uni.navigateBack()
   }
 
-  // uni.navigateBack({
-  //   delta: 1,
-  //   success: () => {
-  //     uni.$emit('selectProject', {
-  //       ids: selectedIds.value,
-  //       detailaddress,
-  //       totalArea,
-  //     })
-  //   },
-  // })
-
   const currentSelectSidebar = ref('all')
   const selectSidebar = (item: { title: string; type: string }) => {
     currentSelectSidebar.value = item.type
+  }
+
+  const selectProject = (): void => {
+    // uni.navigateBack({
+    //   delta: 1,
+    //   success: () => {
+    //     uni.$emit('selectProject', {
+    //       ids: selectedIds.value,
+    //       detailaddress,
+    //       totalArea,
+    //     })
+    //   },
+    // })
   }
 
   const sidebarList = [

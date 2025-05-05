@@ -3,6 +3,7 @@
     <view class="title">
       <text>预约时间</text>
     </view>
+
     <!-- 日期选项卡 -->
     <view class="date-tabs">
       <view
@@ -25,7 +26,7 @@
     <view class="time-grid flex-row">
       <view
         v-for="time in currentTimes"
-        :key="time.time"
+        :key="selectedDate + '-' + time.time"
         class="time-slot flex-col"
         :class="{
           full: time.status === 'full',
@@ -42,21 +43,20 @@
     </view>
 
     <!-- 日期选择弹窗 -->
-    <!-- <CalendarPopup /> -->
+    <CalendarPopup
+      v-if="isShowCalendar"
+      :selected-date="selectedDate"
+      @close-popup="closeCalendarPopup"
+      @select="handlePopupDateSelect"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue'
-  import CalendarPopup from './calendar-popup.vue'
+  import { ref, computed, nextTick } from 'vue'
   import { onShow } from '@dcloudio/uni-app'
+  import CalendarPopup from './calendar-popup.vue'
   import { apiGetFullTimes } from '@/service/reservation'
-
-  // 类型定义
-  interface TimeSlot {
-    time: string
-    status: 'available' | 'full'
-  }
 
   interface DateOption {
     key: string
@@ -65,105 +65,19 @@
     formattedDate: string
   }
 
-  // 响应式数据
-  const selectedDate = ref<string>('')
-  const showCalendar = ref(false)
+  interface TimeSlot {
+    time: string
+    status: 'full' | 'available'
+  }
+
+  const emits = defineEmits(['selectTime'])
+
+  const selectedDate = ref('')
+  const selectedTime = ref('')
+  const isShowCalendar = ref(false)
+  const selectedPopupDate = ref<Date | null>(null)
   const scheduleData = ref<Record<string, Set<string>>>({})
-  const selectedTime = ref<string>('')
 
-  // 计算日期选项卡
-  const dateOptions = computed<DateOption[]>(() => {
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(today.getDate() + 1)
-
-    const dayAfterTomorrow = new Date(today)
-    dayAfterTomorrow.setDate(today.getDate() + 2)
-
-    // 确保第四个始终是下一个周六
-    const nextSaturday = getNextSaturday(today)
-
-    return [
-      createDateOption(today, '今天'),
-      createDateOption(tomorrow, getDayLabel(tomorrow, '明天')),
-      createDateOption(dayAfterTomorrow, getDayLabel(dayAfterTomorrow, '后天')),
-      createDateOption(nextSaturday, '周六'),
-      { key: 'all', label: '全部', date: today, formattedDate: '' },
-    ]
-  })
-
-  // 日期切换处理
-  const handleDateSelect = async (date: DateOption) => {
-    if (date.key === 'all') {
-      showCalendar.value = true
-    } else {
-      selectedDate.value = date.key
-      // 动态加载数据
-      if (!scheduleData.value[date.key]) {
-        const fullTimes = await apiGetFullTimes(date.key)
-        scheduleData.value[date.key] = new Set(fullTimes)
-      }
-      selectedTime.value = '' // 切换日期清空选择
-    }
-  }
-
-  // 修改时间处理逻辑
-  const handleTimeSelect = (time: TimeSlot) => {
-    if (time.status === 'full') return
-
-    // 同时记录选中日期和时间
-    selectedTime.value = time.time
-    console.log('预约时间:', selectedDate.value, time.time)
-  }
-
-  // 判断时间是否激活
-  const isTimeActive = (time: TimeSlot) => {
-    return selectedTime.value === time.time
-  }
-
-  // 工具函数
-  const getNextSaturday = (date: Date) => {
-    const currentDay = date.getDay()
-    const daysToAdd = currentDay === 6 ? 7 : 6 - currentDay
-    const result = new Date(date)
-    result.setDate(date.getDate() + daysToAdd)
-    return result
-  }
-
-  // 格式化日期
-  const formatDate = (date: Date, format = 'YYYY-M-D') => {
-    const year = date.getFullYear()
-    const month = date.getMonth() + 1
-    const day = date.getDate()
-    return format === 'M/D' ? `${month}/${day}` : `${year}-${month}-${day}`
-  }
-
-  // 创建日期选项的辅助函数
-  const createDateOption = (date: Date, label: string) => {
-    return {
-      key: formatDate(date),
-      label,
-      date,
-      formattedDate: formatDate(date, 'M/D'),
-    }
-  }
-
-  // 智能日期标签生成
-  const getDayLabel = (date: Date, defaultLabel: string) => {
-    const day = date.getDay()
-    return day === 6 ? '周六' : day === 0 ? '周日' : defaultLabel
-  }
-
-  // 获取当天数据
-  const fetchTodayData = async () => {
-    const todayKey = formatDate(new Date())
-    if (!scheduleData.value[todayKey]) {
-      const fullTimes = await apiGetFullTimes(todayKey)
-      scheduleData.value[todayKey] = new Set(fullTimes)
-    }
-  }
-
-  // 修改时间生成逻辑为固定值
   const fixedTimeSlots = [
     '11:00',
     '12:00',
@@ -178,10 +92,159 @@
     '21:00',
   ]
 
-  // 初始化模拟数据
+  /**
+   * 格式化日期
+   * @param date 日期
+   * @param format 格式
+   * @returns
+   */
+  const formatDate = (date: Date, format = 'YYYY-M-D') => {
+    const normalizedDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    const pad = (n: number) => n.toString().padStart(2, '0')
+    return format === 'M/D'
+      ? `${pad(normalizedDate.getMonth() + 1)}/${pad(normalizedDate.getDate())}`
+      : `${normalizedDate.getFullYear()}-${pad(normalizedDate.getMonth() + 1)}-${pad(normalizedDate.getDate())}`
+  }
+
+  /**
+   * 获取动态的周几标签
+   * @param date 日期
+   * @returns
+   */
+  const getDynamicDayLabel = (date: Date) => {
+    const today = new Date()
+    const normalize = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+
+    const normalizedToday = normalize(today)
+    const normalizedDate = normalize(date)
+
+    const diffTime = normalizedDate.getTime() - normalizedToday.getTime()
+    const diffDays = diffTime / (1000 * 60 * 60 * 24)
+
+    if (diffDays === 0) return '今天'
+    if (diffDays === 1) return '明天'
+    if (diffDays === 2) return '后天'
+
+    return ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()]
+  }
+
+  /**
+   * 创建一个日期选项对象
+   * @param baseDate 基准日期
+   * @param offset 偏移天数
+   * @returns
+   */
+  const createDynamicOption = (baseDate: Date, offset: number): DateOption => {
+    const date = new Date(baseDate)
+    date.setDate(date.getDate() + offset)
+    const normalizedDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    return {
+      key: formatDate(normalizedDate),
+      label: getDynamicDayLabel(normalizedDate),
+      date: normalizedDate,
+      formattedDate: formatDate(normalizedDate, 'M/D'),
+    }
+  }
+
+  /**
+   * 日期选项卡数组
+   */
+  const dateOptions = computed<DateOption[]>(() => {
+    const baseDate = selectedPopupDate.value ?? new Date()
+    return [
+      createDynamicOption(baseDate, 0),
+      createDynamicOption(baseDate, 1),
+      createDynamicOption(baseDate, 2),
+      createDynamicOption(baseDate, 3),
+      { key: 'all', label: '全部', date: baseDate, formattedDate: '' },
+    ]
+  })
+
+  /**
+   * 点击日期选项
+   * @param date 日期选项
+   */
+  const handleDateSelect = async (date: DateOption) => {
+    if (date.key === 'all') {
+      isShowCalendar.value = true
+    } else {
+      selectedDate.value = date.key
+      if (!scheduleData.value[date.key]) {
+        // const fullTimes = await apiGetFullTimes(date.key)
+        // scheduleData.value[date.key] = new Set(fullTimes)
+      }
+      selectedTime.value = ''
+    }
+  }
+
+  /**
+   * 关闭日历弹窗
+   */
+  const closeCalendarPopup = () => {
+    isShowCalendar.value = false
+  }
+
+  /**
+   * 日历弹窗选择日期
+   * @param dateStr 日期字符串
+   */
+  const handlePopupDateSelect = (dateStr: string) => {
+    isShowCalendar.value = false
+    const date = new Date(dateStr)
+    const normalizedDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    selectedPopupDate.value = normalizedDate
+    scheduleData.value = {}
+    nextTick(() => {
+      selectedDate.value = formatDate(normalizedDate)
+    })
+  }
+
+  /**
+   * 选择时间槽
+   * @param time 时间槽
+   */
+  const handleTimeSelect = (time: TimeSlot) => {
+    if (time.status === 'full') return
+    selectedTime.value = time.time
+    emits('selectTime', { date: selectedDate.value, time: time.time })
+  }
+
+  /**
+   * 判断时间是否被选中
+   * @param time 时间槽
+   */
+  const isTimeActive = (time: TimeSlot) => {
+    return selectedTime.value === time.time
+  }
+
+  /**
+   * 当前选中日期的时间槽
+   * @returns
+   */
+  const currentTimes = computed<TimeSlot[]>(() => {
+    if (selectedDate.value === 'all') return []
+    return generateTimeSlots(selectedDate.value)
+  })
+
+  /**
+   * 构造某天的时间槽数组
+   * @param dateKey 日期键
+   * @returns
+   */
+  const generateTimeSlots = (dateKey: string): TimeSlot[] => {
+    return fixedTimeSlots.map((time) => ({
+      time,
+      status: scheduleData.value[dateKey]?.has(time) ? 'full' : 'available',
+    }))
+  }
+
   onShow(() => {
-    fetchTodayData()
-    selectedDate.value = formatDate(new Date())
+    const todayKey = formatDate(new Date())
+    selectedDate.value = todayKey
+    if (!scheduleData.value[todayKey]) {
+      // const fullTimes = await apiGetFullTimes(todayKey)
+      // scheduleData.value[todayKey] = new Set(fullTimes)
+    }
   })
 </script>
 
@@ -193,7 +256,6 @@
     overflow: hidden;
     background: #fff;
     border-radius: 16rpx;
-    border-radius: 8px;
   }
 
   .title {

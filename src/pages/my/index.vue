@@ -17,8 +17,10 @@
                 mode="scaleToFill"
               />
             </view>
-            <view class="user-name">
-              <text>用户名</text>
+            <view class="user-name" @click="goLogin">
+              <text>{{
+                userInfoState.userInfo?.name ? userInfoState.userInfo.name : '请登录'
+              }}</text>
             </view>
           </view>
         </view>
@@ -40,6 +42,7 @@
           </view>
           <!-- 订单列表 -->
           <scroll-view
+            v-if="userInfoState.userInfo"
             class="order-lsit"
             :scroll-y="true"
             :refresher-enabled="isOpenRefresh"
@@ -74,11 +77,11 @@
               <view class="button-box flex-row">
                 <view
                   class="button-box-item flex-row"
-                  style=" margin-right: 14rpx;border: 1rpx solid #e3e3e3"
+                  style="margin-right: 14rpx; border: 1rpx solid #e3e3e3"
                 >
                   <text>取消预约</text>
                 </view>
-                <view class="button-box-item flex-row" style=" color: #ff7575;background: #ffecec"
+                <view class="button-box-item flex-row" style="color: #ff7575; background: #ffecec"
                   ><text>完成服务</text></view
                 >
               </view>
@@ -92,6 +95,16 @@
 
 <script setup lang="ts">
   import { ref } from 'vue'
+  import { useUserInfoStore } from '@/stores'
+  import { onShow } from '@dcloudio/uni-app'
+  import { login } from '../../service/user'
+
+  interface orderListType {
+    title: string
+    type: string
+  }
+
+  const userInfoState = useUserInfoStore()
 
   // 获取屏幕边界到安全区域距离
   const { safeAreaInsets } = uni.getSystemInfoSync()
@@ -101,9 +114,43 @@
     name: '',
   })
 
-  interface orderListType {
-    title: string
-    type: string
+  const goLogin = () => {
+    uni.login({
+      provider: 'weixin', // 微信登录
+      success: (res) => {
+        if (res.code) {
+          // 获取到的临时登录凭证
+          console.log('微信登录成功，获取到的 code:', res.code)
+          // 发送 code 到后台获取 openid 和 session_key
+          login(res.code)
+            .then((response) => {
+              console.log('登录成功', response)
+              uni.showToast({
+                title: '登录成功',
+                icon: 'success',
+              })
+            })
+            .catch((error) => {
+              console.error('登录失败', error)
+              uni.showToast({
+                title: '登录失败',
+                icon: 'none',
+              })
+            })
+        } else {
+          uni.showToast({
+            title: '登录失败',
+            icon: 'none',
+          })
+        }
+      },
+      fail: (err) => {
+        uni.showToast({
+          title: '登录失败',
+          icon: 'none',
+        })
+      },
+    })
   }
 
   const currentOrderType = ref('all')
@@ -162,6 +209,10 @@
       type: '',
     },
   ]
+
+  onShow(() => {
+    console.log('onShow', userInfoState)
+  })
 </script>
 
 <style>

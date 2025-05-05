@@ -1,7 +1,7 @@
 import { useUserInfoStore } from '@/stores'
 
 /** API 基础地址 */
-const BASE_URL = ''
+const BASE_URL = 'http://150.158.138.47:8089'
 
 /** 后端响应结构泛型 (根据实际接口调整) */
 interface ApiResponse<T = any> {
@@ -100,7 +100,14 @@ export function http<T = any>(options: RequestOptions) {
 
     uni.request({
       ...options,
-      success: (res) => resolve(res as T),
+      success: (res) => {
+        try {
+          const data = responseInterceptor.returnValue(res)
+          resolve(data as T)
+        } catch (err) {
+          reject(err)
+        }
+      },
       fail: reject,
     })
   })
@@ -114,24 +121,3 @@ function showError(message = '请求失败，请重试') {
     duration: 2000,
   })
 }
-
-/** 示例用法 */
-interface UserData {
-  id: number
-  name: string
-}
-
-// 带类型的 GET 请求
-export const getUsers = () =>
-  http<UserData[]>({
-    url: '/api/users',
-    method: 'GET',
-  })
-
-// 带类型的 POST 请求
-export const postLogin = (data: { phone: string; code: string }) =>
-  http<{ token: string }>({
-    url: '/api/login',
-    method: 'POST',
-    data,
-  })
