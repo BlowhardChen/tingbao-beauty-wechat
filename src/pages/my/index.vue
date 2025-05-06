@@ -12,14 +12,14 @@
             <view class="avatar">
               <image
                 class="avatar-img"
-                :src="'/static/my/avatar.png'"
+                src="/static/my/avatar.png"
                 referrer="no-referrer|origin|unsafe-url"
                 mode="scaleToFill"
               />
             </view>
             <view class="user-name" @click="goLogin">
               <text>{{
-                userInfoState.userInfo?.name ? userInfoState.userInfo.name : '请登录'
+                userInfoState.userInfo?.nickName ? userInfoState.userInfo.nickName : '请登录'
               }}</text>
             </view>
           </view>
@@ -81,9 +81,9 @@
                 >
                   <text>取消预约</text>
                 </view>
-                <view class="button-box-item flex-row" style="color: #ff7575; background: #ffecec"
-                  ><text>完成服务</text></view
-                >
+                <view class="button-box-item flex-row" style="color: #ff7575; background: #ffecec">
+                  <text>完成服务</text>
+                </view>
               </view>
             </view>
           </scroll-view>
@@ -97,7 +97,7 @@
   import { ref } from 'vue'
   import { useUserInfoStore } from '@/stores'
   import { onShow } from '@dcloudio/uni-app'
-  import { login } from '../../service/user'
+  import { login } from '@/services/user'
 
   interface orderListType {
     title: string
@@ -109,47 +109,47 @@
   // 获取屏幕边界到安全区域距离
   const { safeAreaInsets } = uni.getSystemInfoSync()
 
-  const userInfo = ref({
-    avatar: '',
-    name: '',
-  })
-
+  /**
+   * 发起微信登录流程，获取临时登录凭证并调用后台接口登录
+   */
   const goLogin = () => {
+    // 调用 uni.login 获取临时登录凭证
     uni.login({
-      provider: 'weixin', // 微信登录
-      success: (res) => {
-        if (res.code) {
-          // 获取到的临时登录凭证
-          console.log('微信登录成功，获取到的 code:', res.code)
-          // 发送 code 到后台获取 openid 和 session_key
-          login(res.code)
-            .then((response) => {
-              console.log('登录成功', response)
-              uni.showToast({
-                title: '登录成功',
-                icon: 'success',
-              })
-            })
-            .catch((error) => {
-              console.error('登录失败', error)
-              uni.showToast({
-                title: '登录失败',
-                icon: 'none',
-              })
-            })
-        } else {
+      provider: 'weixin',
+      success: async (res) => {
+        if (!res.code) {
+          return showLoginFail('微信登录失败，请稍后重试')
+        }
+        try {
+          // 使用 code 调用后台登录接口
+          const data = await login(res.code)
           uni.showToast({
-            title: '登录失败',
-            icon: 'none',
+            title: '登录成功',
+            icon: 'success',
           })
+          useUserInfoStore().setToken(data.token)
+          useUserInfoStore().setUserInfoData(data.userinfo)
+        } catch (error: any) {
+          showLoginFail(error?.msg || '登录失败，请稍后重试')
         }
       },
+
       fail: (err) => {
-        uni.showToast({
-          title: '登录失败',
-          icon: 'none',
-        })
+        console.error('微信登录接口调用失败', err)
+        showLoginFail('微信登录失败，请检查网络或稍后重试')
       },
+    })
+  }
+
+  /**
+   * 显示登录失败提示
+   * @param message 提示内容
+   */
+  const showLoginFail = (message: string) => {
+    uni.showToast({
+      title: message,
+      icon: 'none',
+      duration: 2000,
     })
   }
 

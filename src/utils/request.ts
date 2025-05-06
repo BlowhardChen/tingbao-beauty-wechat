@@ -3,40 +3,34 @@ import { useUserInfoStore } from '@/stores'
 /** API 基础地址 */
 const BASE_URL = 'http://150.158.138.47:8089'
 
-/** 后端响应结构泛型 (根据实际接口调整) */
+/** 后端响应结构泛型 */
 interface ApiResponse<T = any> {
-  code: number // 实际类型需确认 (number/string)
+  code: number
   msg: string
   data: T
 }
 
 /** 扩展 uni 请求类型 */
 type RequestOptions = UniApp.RequestOptions & {
-  /** 是否静默请求 (不显示错误提示) */
   silent?: boolean
 }
 
 /** 请求拦截器 */
 const requestInterceptor = {
   invoke(options: RequestOptions) {
-    // 1. 自动补全基础路径
-    if (!options.url.startsWith('http')) {
+    const store = useUserInfoStore()
+
+    // 补全 URL
+    if (!/^https?:\/\//.test(options.url)) {
       options.url = BASE_URL + options.url
     }
 
-    // 2. 合并超时时间 (小程序默认 60s)
-    options.timeout = options.timeout || 60000
-
-    // 3. 添加客户端标识
+    // 合并默认 header 和超时
+    options.timeout ??= 60000
     options.header = {
-      'source-client': 'miniprogram', // 微信小程序标准命名
+      'source-client': 'miniprogram',
+      Authorization: store.token ? `Bearer ${store.token}` : '',
       ...options.header,
-    }
-
-    // 4. 自动携带 Token
-    const { token } = useUserInfoStore()
-    if (token) {
-      options.header.Authorization = `Bearer ${token}`
     }
 
     return options
@@ -46,78 +40,68 @@ const requestInterceptor = {
 /** 响应拦截器 */
 const responseInterceptor = {
   returnValue(res: UniApp.RequestSuccessCallbackResult) {
-    // 统一处理 HTTP 状态码
-    if (res.statusCode === 401) {
+    const status = res.statusCode
+    const data = res.data as ApiResponse
+
+    if (status === 401 || data?.code === 401) {
       handleTokenExpired()
       return Promise.reject({ code: 401, msg: '请重新登录' })
     }
 
-    if (res.statusCode < 200 || res.statusCode >= 300) {
+    if (status < 200 || status >= 300 || typeof data !== 'object') {
       return Promise.reject({
-        code: res.statusCode,
-        msg: `网络请求失败 [${res.statusCode}]`,
+        code: status,
+        msg: `请求失败 [${status}]`,
       })
     }
 
-    // 处理业务状态码 (需与后端对齐)
-    const data = res.data as ApiResponse
-    switch (data.code) {
-      case 200: // 业务成功
-        return data.data
-      case 401: // Token 失效 (与 HTTP 401 重复时可移除)
-        handleTokenExpired()
-        return Promise.reject(data)
-      default: // 其他业务错误
-        return Promise.reject(data)
-    }
+    return data.code === 200 ? data.data : Promise.reject(data)
   },
 }
 
-/** Token 失效统一处理 */
+/** Token 失效处理 */
 function handleTokenExpired() {
   const store = useUserInfoStore()
   store.removeUserInfoData()
-  uni.reLaunch({ url: '/pages/index/index' }) // 完全重启到登录页
+  uni.reLaunch({ url: '/pages/index/index' })
 }
 
-// 注册拦截器
-uni.addInterceptor('request', {
-  ...requestInterceptor,
-  ...responseInterceptor,
-})
-uni.addInterceptor('uploadFile', requestInterceptor)
-
-/** 封装带类型提示的请求函数 */
-export function http<T = any>(options: RequestOptions) {
-  return new Promise<T>((resolve, reject) => {
-    // 静默请求不显示通用错误
-    if (!options.silent) {
-      options.fail = (err) => {
-        showError('网络连接失败，请检查网络')
-        reject(err)
-      }
-    }
-
-    uni.request({
-      ...options,
-      success: (res) => {
-        try {
-          const data = responseInterceptor.returnValue(res)
-          resolve(data as T)
-        } catch (err) {
-          reject(err)
-        }
-      },
-      fail: reject,
-    })
-  })
-}
-
-/** 统一错误提示 */
+/** 错误提示 */
 function showError(message = '请求失败，请重试') {
   uni.showToast({
     icon: 'none',
     title: message,
     duration: 2000,
+  })
+}
+
+/** 注册拦截器 */
+uni.addInterceptor('request', {
+  invoke: requestInterceptor.invoke,
+})
+uni.addInterceptor('uploadFile', requestInterceptor)
+
+/** 封装带类型的请求函数 */
+export function http<T = any>(options: RequestOptions): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const { silent } = options
+
+    uni.request({
+      ...options,
+      success: async (res) => {
+        try {
+          const data = await responseInterceptor.returnValue(res)
+          console.log('响应拦截器接收到的 response:', data)
+          resolve(data as T)
+        } catch (err) {
+          if (!silent) showError((err as any)?.msg)
+          reject(err)
+        }
+      },
+      fail: (err) => {
+        if (!silent) showError('网络连接失败，请检查网络')
+        reject(err)
+      },
+    })
   })
 }

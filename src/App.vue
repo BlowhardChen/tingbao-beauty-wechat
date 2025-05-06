@@ -1,5 +1,8 @@
 <script setup lang="ts">
   import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
+  import { useProjectInfoStore } from '@/stores'
+
+  const projectInfoStore = useProjectInfoStore()
   onLaunch(() => {
     console.log('onLaunch')
   })
@@ -10,6 +13,7 @@
 
   onHide(() => {
     console.log('onHide')
+    projectInfoStore.removeProjectInfoData()
   })
 </script>
 

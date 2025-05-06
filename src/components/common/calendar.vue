@@ -56,7 +56,6 @@
   import { ref, computed, nextTick } from 'vue'
   import { onShow } from '@dcloudio/uni-app'
   import CalendarPopup from './calendar-popup.vue'
-  import { apiGetFullTimes } from '@/service/reservation'
 
   interface DateOption {
     key: string

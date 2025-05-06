@@ -21,7 +21,7 @@ pnpm i --registry=https://registry.npmmirror.com
 pnpm run dev:h5
 
 # 微信小程序
-pnpm dev:mp-weixin
+pnpm run dev:mp-weixin
 然后使用微信开发者工具打开dist/dev/mp-weixi目录即可
 ```
 

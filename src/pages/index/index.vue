@@ -24,9 +24,11 @@
               </view>
               <view class="price">
                 <text style="font-size: 28rpx">￥</text>
-                <text>99</text>
+                <text>{{ manicureInfo[0].price }}</text>
               </view>
-              <view class="button flex-row" @click="clickBookNow"> <text>立即预约</text> </view>
+              <view class="button flex-row" @click="clickReservationNow(manicureInfo[0])">
+                <text>立即预约</text>
+              </view>
             </view>
           </view>
           <view class="projiect-content-item flex-row" style="margin-top: 32rpx">
@@ -39,9 +41,11 @@
               </view>
               <view class="price">
                 <text style="font-size: 28rpx">￥</text>
-                <text>199</text>
+                <text>{{ manicureInfo[1].price }}</text>
               </view>
-              <view class="button flex-row" @click="clickBookNow"><text>立即预约</text> </view>
+              <view class="button flex-row" @click="clickReservationNow(manicureInfo[1])">
+                <text>立即预约</text>
+              </view>
             </view>
             <view class="image">
               <image src="@/static/index/image2.png" mode="scaleToFill" />
@@ -57,44 +61,42 @@
         <view class="projiect-content">
           <view class="projiect-content-item flex-row">
             <view class="image">
-              <image src="@/static/index/image1.png" mode="scaleToFill" />
+              <image src="@/static/index/image3.png" mode="scaleToFill" />
             </view>
-            <view
-              class="desc"
-              style="border: 2rpx solid #eee; border-radius: 0rpx 80rpx 0rpx 0rpx"
-            >
+            <view class="desc" style="border: 2rpx solid #eee; border-radius: 0rpx 80rpx 0rpx 0rpx">
               <view class="desc-title">
                 <text>单根美睫</text>
               </view>
               <view class="desc-title2">
-                <text>(不限根数+下睫毛)</text>
+                <text>(送下睫毛)</text>
               </view>
               <view class="price">
                 <text style="font-size: 28rpx">￥</text>
-                <text>99</text>
+                <text>{{ beautifulEyelashesInfo[0].price }}</text>
               </view>
-              <view class="button flex-row" @click="clickBookNow"> <text>立即预约</text> </view>
+              <view class="button flex-row" @click="clickReservationNow(beautifulEyelashesInfo[0])">
+                <text>立即预约</text>
+              </view>
             </view>
           </view>
           <view class="projiect-content-item flex-row" style="margin-top: 32rpx">
-            <view
-              class="desc"
-              style="border: 2rpx solid #eee; border-radius: 0rpx 0rpx 0rpx 80rpx"
-            >
+            <view class="desc" style="border: 2rpx solid #eee; border-radius: 0rpx 0rpx 0rpx 80rpx">
               <view class="desc-title">
                 <text>款式美睫</text>
               </view>
               <view class="desc-title2">
-                <text>(漫画/仙子/泰式)</text>
+                <text>(送下睫毛)</text>
               </view>
               <view class="price">
                 <text style="font-size: 28rpx">￥</text>
-                <text>199</text>
+                <text>{{ beautifulEyelashesInfo[1].price }}</text>
               </view>
-              <view class="button flex-row" @click="clickBookNow"><text>立即预约</text> </view>
+              <view class="button flex-row" @click="clickReservationNow(beautifulEyelashesInfo[1])">
+                <text>立即预约</text>
+              </view>
             </view>
             <view class="image">
-              <image src="@/static/index/image2.png" mode="scaleToFill" />
+              <image src="@/static/index/image4.png" mode="scaleToFill" />
             </view>
           </view>
         </view>
@@ -104,15 +106,37 @@
 </template>
 
 <script setup lang="ts">
+  import { getProjectList } from '@/services/project'
+  import type { ProjectList } from '@/types/project'
   import { onShow } from '@dcloudio/uni-app'
+  import { ref } from 'vue'
+  import { useProjectInfoStore } from '@/stores'
 
-  const clickBookNow = (): void => {
-    uni.setStorageSync('projectInfo', JSON.stringify({}))
+  const projectInfoStore = useProjectInfoStore()
+
+  const manicureInfo = ref() // 美甲项目
+  const beautifulEyelashesInfo = ref() // 美睫项目
+
+  /**
+   * 点击立即预约
+   * @param item
+   */
+  const clickReservationNow = (item: ProjectList): void => {
+    projectInfoStore.setProjectInfoData(item)
     uni.switchTab({ url: '/pages/reservation/index' })
   }
 
-  onShow(() => {
-    console.log('onShow')
+  // 获取项目列表信息
+  const getProjectInfo = async (): Promise<void> => {
+    try {
+      const data = await getProjectList()
+      manicureInfo.value = data.slice(0, 2)
+      beautifulEyelashesInfo.value = data.slice(-2)
+    } catch (error) {}
+  }
+
+  onShow(async () => {
+    await getProjectInfo()
   })
 </script>
 
@@ -130,13 +154,14 @@
   }
 
   .banner {
+    position: relative;
     width: 100%;
-    height: 580rpx;
+    height: 1000rpx;
+  }
 
-    > image {
-      width: 100%;
-      height: 100%;
-    }
+  .banner image {
+    width: 100%;
+    height: 100%;
   }
 
   .projiect {

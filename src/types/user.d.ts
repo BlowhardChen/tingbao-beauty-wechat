@@ -6,7 +6,10 @@ export interface UserState {
 
 // 用户详细信息
 export interface GlobalUser {
-  id: number
-  name: string
+  userId: number
+  nickName: string
+  avatar: string
   mobile: string
+  createTime: string
+  loginDate: string
 }

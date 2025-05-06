@@ -3,7 +3,7 @@
     <view class="content">
       <!-- banner -->
       <view class="banner">
-        <image src="@/static/index/banner.png" mode="scaleToFill" />
+        <image src="@/static/reservation/banner.png" mode="scaleToFill" />
       </view>
       <!-- main -->
       <view class="main">
@@ -85,7 +85,10 @@
       </view>
       <!-- 预约按钮 -->
       <view class="button-box flex-row">
-        <view class="button flex-row">
+        <view
+          :class="['button', 'flex-row', { 'button-disabled': !isFormComplete }]"
+          v-debounce="clickReservationNow"
+        >
           <text>立即预约</text>
         </view>
       </view>
@@ -100,6 +103,9 @@
   import { onShow } from '@dcloudio/uni-app'
   import SuccessPopup from '@/components/common/success-popup.vue'
   import { computed, reactive, ref } from 'vue'
+  import { useProjectInfoStore } from '@/stores'
+
+  const projectInfoStore = useProjectInfoStore()
 
   // 计算当前时间
   const currentTime = new Date()
@@ -132,14 +138,28 @@
   // 拨打电话
   const callPhone = (): void => {
     uni.makePhoneCall({
-      phoneNumber: '13333333333', // 电话号码
+      phoneNumber: '18218426498', // 电话号码
     })
   }
 
+  // 预约表单数据
   const reservationForm = reactive({
     project: '',
     name: '',
     phone: '',
+    date: '',
+    time: '',
+  })
+
+  // 预约表单是否完整
+  const isFormComplete = computed(() => {
+    return (
+      reservationForm.project &&
+      reservationForm.name &&
+      reservationForm.phone &&
+      reservationForm.date &&
+      reservationForm.time
+    )
   })
 
   // 选择项目
@@ -149,8 +169,27 @@
     })
   }
 
+  // 选择时间
   const selectTime = (data: any): void => {
     console.log('selectTime', data)
+    reservationForm.date = data.date
+    reservationForm.time = data.time
+  }
+
+  // 立即预约
+  const clickReservationNow = (): void => {
+    const phone = reservationForm.phone.trim()
+    // 正则校验：以1开头，第二位是3-9，然后后面9位数字，共11位
+    const phoneReg = /^1[3-9]\d{9}$/
+    if (!phoneReg.test(phone)) {
+      uni.showToast({
+        title: '请输入正确的手机号',
+        icon: 'none',
+      })
+      return
+    }
+    try {
+    } catch (error) {}
   }
 
   const isShowSuccessPopup = ref(false)
@@ -165,16 +204,8 @@
   }
 
   onShow(() => {
-    try {
-      const result = uni.getStorageSync('projectInfo')
-      if (result) {
-        // 使用参数
-        console.log(result)
-        // 清除数据
-        uni.removeStorage({ key: 'projectInfo' })
-      }
-    } catch (error) {
-      // 没有相关数据
+    if (projectInfoStore.projectInfo) {
+      reservationForm.project = projectInfoStore.projectInfo.name
     }
 
     try {
@@ -356,6 +387,10 @@
     color: #fff;
     background: #fe9393;
     border-radius: 36rpx;
+    opacity: 1;
+  }
+
+  .button-disabled {
     opacity: 0.5;
   }
 </style>
