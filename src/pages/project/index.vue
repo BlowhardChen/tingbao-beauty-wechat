@@ -31,23 +31,27 @@
           </view>
         </view>
         <view class="project-list">
-          <view class="project-list-item flex-row">
+          <view
+            class="project-list-item flex-row"
+            v-for="(item, index) in projectList"
+            :key="index"
+          >
             <view class="project-list-item-image">
-              <image src="@/static/project/image.png" mode="scaleToFill" />
+              <image :src="item.imageUrl" mode="scaleToFill" />
             </view>
             <view class="project-list-item-info">
               <view class="title">
-                <text>【手部本甲】本甲任意款式</text>
+                <text>【{{ item.name }}】{{ item.activity }}</text>
               </view>
               <view class="time">
-                <text>约60分钟</text>
+                <text>约{{ item.durationMinutes }}分钟</text>
               </view>
               <view class="project-select flex-row">
                 <view class="price">
                   <text style="font-size: 28rpx">￥</text>
-                  <text>99</text>
+                  <text>{{ item.price }}</text>
                 </view>
-                <view class="button" @click="selectProject">选择</view>
+                <view class="button" @click="selectProject(item)">选择</view>
               </view>
             </view>
           </view>
@@ -57,50 +61,65 @@
   </view>
 </template>
 <script setup lang="ts">
-  import { onLoad } from '@dcloudio/uni-app'
+  import { getProjectList } from '@/services/project'
+  import type { ProjectList } from '@/types/project'
+  import { onShow } from '@dcloudio/uni-app'
   import { ref } from 'vue'
 
   // 获取屏幕边界到安全区域距离
   const { safeAreaInsets } = uni.getSystemInfoSync()
 
+  // 返回
   const backView = () => {
     uni.navigateBack()
   }
 
-  const currentSelectSidebar = ref('all')
-  const selectSidebar = (item: { title: string; type: string }) => {
+  const currentSelectSidebar = ref<string | number>('')
+  const projectList = ref<ProjectList[]>([])
+  // 选择侧边栏
+  const selectSidebar = (item: { title: string; type: string | number }) => {
     currentSelectSidebar.value = item.type
+    getProjectListData(item.type)
   }
 
-  const selectProject = (): void => {
-    // uni.navigateBack({
-    //   delta: 1,
-    //   success: () => {
-    //     uni.$emit('selectProject', {
-    //       ids: selectedIds.value,
-    //       detailaddress,
-    //       totalArea,
-    //     })
-    //   },
-    // })
+  // 选择项目
+  const selectProject = (project: ProjectList): void => {
+    uni.navigateBack({
+      delta: 1,
+      success: () => {
+        uni.$emit('selectProject', {
+          project,
+        })
+      },
+    })
+  }
+
+  // 获取项目列表
+  const getProjectListData = async (appointTypeId?: number | string): Promise<void> => {
+    try {
+      const data = await getProjectList(appointTypeId)
+      projectList.value = data
+    } catch (error) {}
   }
 
   const sidebarList = [
     {
       title: '全部',
-      type: 'all',
+      type: '',
     },
     {
       title: '美甲',
-      type: 'jia',
+      type: 1,
     },
     {
       title: '美睫',
-      type: 'jie',
+      type: 2,
     },
   ]
 
-  onLoad(() => {})
+  onShow(async () => {
+    await getProjectListData()
+  })
 </script>
 <style lang="scss" scoped>
   .box {
@@ -208,6 +227,7 @@
   }
 
   .project-list-item {
+    align-items: center;
     padding: 0 16rpx;
     margin-bottom: 16rpx;
   }

@@ -25,7 +25,16 @@ const requestInterceptor = {
       options.url = BASE_URL + options.url
     }
 
-    // 合并默认 header 和超时
+    // 拼接 GET 请求参数到 URL（仅 GET 时处理）
+    if (options.method?.toUpperCase() === 'GET' && options.data) {
+      const query = Object.entries(options.data)
+        .filter(([, value]) => value != null)
+        .map(([key, val]) => `${encodeURIComponent(key)}=${encodeURIComponent(val as string)}`)
+        .join('&')
+      options.url += (options.url.includes('?') ? '&' : '?') + query
+      delete options.data
+    }
+
     options.timeout ??= 60000
     options.header = {
       'source-client': 'miniprogram',
@@ -91,7 +100,6 @@ export function http<T = any>(options: RequestOptions): Promise<T> {
       success: async (res) => {
         try {
           const data = await responseInterceptor.returnValue(res)
-          console.log('响应拦截器接收到的 response:', data)
           resolve(data as T)
         } catch (err) {
           if (!silent) showError((err as any)?.msg)

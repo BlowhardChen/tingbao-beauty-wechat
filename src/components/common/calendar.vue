@@ -29,7 +29,7 @@
         :key="selectedDate + '-' + time.time"
         class="time-slot flex-col"
         :class="{
-          full: time.status === 'full',
+          full: time.alreadyCount >= 2,
           active: isTimeActive(time),
         }"
         @click="handleTimeSelect(time)"
@@ -38,7 +38,7 @@
           <image src="@/static/reservation/icon-active.png" mode="scaleToFill" />
         </view>
         <text>{{ time.time }}</text>
-        <view v-if="time.status === 'full'" class="full-tag">约满</view>
+        <view v-if="time.alreadyCount >= 2" class="full-tag">约满</view>
       </view>
     </view>
 
@@ -56,6 +56,7 @@
   import { ref, computed, nextTick } from 'vue'
   import { onShow } from '@dcloudio/uni-app'
   import CalendarPopup from './calendar-popup.vue'
+  import { getReservationTime } from '@/services/reservation'
 
   interface DateOption {
     key: string
@@ -66,7 +67,9 @@
 
   interface TimeSlot {
     time: string
-    status: 'full' | 'available'
+    alreadyCount: number
+    maxCapacity: number
+    userReserved?: boolean
   }
 
   const emits = defineEmits(['selectTime'])
@@ -75,27 +78,10 @@
   const selectedTime = ref('')
   const isShowCalendar = ref(false)
   const selectedPopupDate = ref<Date | null>(null)
-  const scheduleData = ref<Record<string, Set<string>>>({})
-
-  const fixedTimeSlots = [
-    '11:00',
-    '12:00',
-    '13:00',
-    '14:00',
-    '15:00',
-    '16:00',
-    '17:00',
-    '18:00',
-    '19:00',
-    '20:00',
-    '21:00',
-  ]
+  const scheduleData = ref<Record<string, TimeSlot[]>>({})
 
   /**
    * 格式化日期
-   * @param date 日期
-   * @param format 格式
-   * @returns
    */
   const formatDate = (date: Date, format = 'YYYY-M-D') => {
     const normalizedDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -107,16 +93,12 @@
 
   /**
    * 获取动态的周几标签
-   * @param date 日期
-   * @returns
    */
   const getDynamicDayLabel = (date: Date) => {
     const today = new Date()
     const normalize = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
-
     const normalizedToday = normalize(today)
     const normalizedDate = normalize(date)
-
     const diffTime = normalizedDate.getTime() - normalizedToday.getTime()
     const diffDays = diffTime / (1000 * 60 * 60 * 24)
 
@@ -129,9 +111,6 @@
 
   /**
    * 创建一个日期选项对象
-   * @param baseDate 基准日期
-   * @param offset 偏移天数
-   * @returns
    */
   const createDynamicOption = (baseDate: Date, offset: number): DateOption => {
     const date = new Date(baseDate)
@@ -161,7 +140,6 @@
 
   /**
    * 点击日期选项
-   * @param date 日期选项
    */
   const handleDateSelect = async (date: DateOption) => {
     if (date.key === 'all') {
@@ -169,8 +147,7 @@
     } else {
       selectedDate.value = date.key
       if (!scheduleData.value[date.key]) {
-        // const fullTimes = await apiGetFullTimes(date.key)
-        // scheduleData.value[date.key] = new Set(fullTimes)
+        await getReservationTimeData(date.key)
       }
       selectedTime.value = ''
     }
@@ -185,32 +162,31 @@
 
   /**
    * 日历弹窗选择日期
-   * @param dateStr 日期字符串
    */
-  const handlePopupDateSelect = (dateStr: string) => {
+  const handlePopupDateSelect = async (dateStr: string) => {
     isShowCalendar.value = false
     const date = new Date(dateStr)
     const normalizedDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
     selectedPopupDate.value = normalizedDate
     scheduleData.value = {}
+    const formatted = formatDate(normalizedDate)
+    await getReservationTimeData(formatted)
     nextTick(() => {
-      selectedDate.value = formatDate(normalizedDate)
+      selectedDate.value = formatted
     })
   }
 
   /**
    * 选择时间槽
-   * @param time 时间槽
    */
   const handleTimeSelect = (time: TimeSlot) => {
-    if (time.status === 'full') return
+    if (time.alreadyCount >= 2) return
     selectedTime.value = time.time
-    emits('selectTime', { date: selectedDate.value, time: time.time })
+    emits('selectTime', { date: selectedDate.value, time })
   }
 
   /**
    * 判断时间是否被选中
-   * @param time 时间槽
    */
   const isTimeActive = (time: TimeSlot) => {
     return selectedTime.value === time.time
@@ -218,32 +194,38 @@
 
   /**
    * 当前选中日期的时间槽
-   * @returns
    */
   const currentTimes = computed<TimeSlot[]>(() => {
     if (selectedDate.value === 'all') return []
-    return generateTimeSlots(selectedDate.value)
+    return scheduleData.value[selectedDate.value] || []
   })
 
   /**
-   * 构造某天的时间槽数组
-   * @param dateKey 日期键
-   * @returns
+   * 获取预约时间数据
    */
-  const generateTimeSlots = (dateKey: string): TimeSlot[] => {
-    return fixedTimeSlots.map((time) => ({
-      time,
-      status: scheduleData.value[dateKey]?.has(time) ? 'full' : 'available',
-    }))
+  const getReservationTimeData = async (dateKey: string): Promise<void> => {
+    try {
+      const data = await getReservationTime(dateKey)
+      scheduleData.value[dateKey] = data
+    } catch (error) {}
   }
 
-  onShow(() => {
+  // 页面加载时获取今天的预约数据
+  const handleOnShowLogic = async (): Promise<void> => {
+    selectedTime.value = ''
+    scheduleData.value = {}
+    selectedPopupDate.value = null
     const todayKey = formatDate(new Date())
     selectedDate.value = todayKey
-    if (!scheduleData.value[todayKey]) {
-      // const fullTimes = await apiGetFullTimes(todayKey)
-      // scheduleData.value[todayKey] = new Set(fullTimes)
-    }
+    await getReservationTimeData(todayKey)
+  }
+
+  defineExpose({
+    handleOnShowLogic,
+  })
+
+  onShow(async () => {
+    await handleOnShowLogic()
   })
 </script>
 

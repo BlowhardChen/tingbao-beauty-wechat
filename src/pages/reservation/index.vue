@@ -44,7 +44,7 @@
           </view>
         </view>
         <!-- 预约时间组件-->
-        <CalenDar @select-time="selectTime" />
+        <CalenDar @select-time="selectTime" ref="calendarRef" />
         <!-- 选择项目 -->
         <view class="select-project flex-row" @click="selectProject">
           <view class="select-project-title">
@@ -87,7 +87,7 @@
       <view class="button-box flex-row">
         <view
           :class="['button', 'flex-row', { 'button-disabled': !isFormComplete }]"
-          v-debounce="clickReservationNow"
+          @click="clickReservationNow"
         >
           <text>立即预约</text>
         </view>
@@ -99,13 +99,18 @@
 </template>
 
 <script setup lang="ts">
-  import CalenDar from '@/components/common/calendar.vue'
   import { onShow } from '@dcloudio/uni-app'
   import SuccessPopup from '@/components/common/success-popup.vue'
+  import CalenDar from '@/components/common/calendar.vue'
   import { computed, reactive, ref } from 'vue'
   import { useProjectInfoStore } from '@/stores'
 
+  import { debounce } from '@/utils'
+  import { addReservation } from '@/services/reservation'
+
   const projectInfoStore = useProjectInfoStore()
+
+  const calendarRef = ref<InstanceType<typeof CalenDar> | null>(null)
 
   // 计算当前时间
   const currentTime = new Date()
@@ -148,7 +153,14 @@
     name: '',
     phone: '',
     date: '',
-    time: '',
+  })
+
+  const reservationParams = reactive({
+    appointDate: '',
+    appointTimeId: '',
+    appointUsername: '',
+    appointPhone: '',
+    appointProjectId: '',
   })
 
   // 预约表单是否完整
@@ -157,8 +169,7 @@
       reservationForm.project &&
       reservationForm.name &&
       reservationForm.phone &&
-      reservationForm.date &&
-      reservationForm.time
+      reservationForm.date
     )
   })
 
@@ -173,11 +184,11 @@
   const selectTime = (data: any): void => {
     console.log('selectTime', data)
     reservationForm.date = data.date
-    reservationForm.time = data.time
+    reservationParams.appointTimeId = data.time.id
   }
 
   // 立即预约
-  const clickReservationNow = (): void => {
+  const clickReservationNow = debounce(async (): Promise<void> => {
     const phone = reservationForm.phone.trim()
     // 正则校验：以1开头，第二位是3-9，然后后面9位数字，共11位
     const phoneReg = /^1[3-9]\d{9}$/
@@ -189,7 +200,29 @@
       return
     }
     try {
-    } catch (error) {}
+      reservationParams.appointUsername = reservationForm.name
+      reservationParams.appointPhone = reservationForm.phone
+      reservationParams.appointDate = reservationForm.date
+      await addReservation(reservationParams)
+      resetCalendarAndForm()
+      isShowSuccessPopup.value = true
+    } catch (error: any) {
+      console.log('error', error)
+      uni.showToast({
+        title: error?.msg || '预约失败',
+        icon: 'none',
+      })
+    }
+  }, 500)
+
+  // 重置日历和表单数据
+  const resetCalendarAndForm = (): void => {
+    calendarRef.value?.handleOnShowLogic()
+    projectInfoStore.removeProjectInfoData()
+    reservationForm.project = ''
+    reservationForm.name = ''
+    reservationForm.phone = ''
+    reservationForm.date = ''
   }
 
   const isShowSuccessPopup = ref(false)
@@ -201,18 +234,24 @@
   // 查看预约
   const viewReservation = (): void => {
     closePopup()
+    uni.switchTab({
+      url: '/pages/my/index',
+    })
   }
 
   onShow(() => {
+    if (!reservationParams.appointProjectId) {
+      calendarRef.value?.handleOnShowLogic()
+    }
+
     if (projectInfoStore.projectInfo) {
       reservationForm.project = projectInfoStore.projectInfo.name
     }
 
-    try {
-      uni.$on('selectProject', (data) => {
-        console.log('selectProject', data)
-      })
-    } catch (error) {}
+    uni.$on('selectProject', (data) => {
+      reservationForm.project = `${data.project.name}${data.project.activity}`
+      reservationParams.appointProjectId = data.project.projectId
+    })
   })
 </script>
 

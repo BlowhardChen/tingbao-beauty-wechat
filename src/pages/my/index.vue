@@ -45,6 +45,8 @@
             v-if="userInfoState.userInfo"
             class="order-lsit"
             :scroll-y="true"
+            enhanced
+            :show-scrollbar="false"
             :refresher-enabled="isOpenRefresh"
             :refresher-triggered="triggered"
             :refresher-threshold="100"
@@ -52,36 +54,56 @@
             @refresherrestore="onRestore"
             @scrolltolower="onReachScollBottom"
           >
-            <view class="order-lsit-item">
+            <view class="order-lsit-item" v-for="(item, index) in reservationList" :key="index">
               <view class="order-info flex-row">
                 <view class="order-info-image">
                   <image
                     class="avatar-img"
-                    :src="'/static/my/image.png'"
+                    :src="item.image_url"
                     referrer="no-referrer|origin|unsafe-url"
                     mode="scaleToFill"
                   />
                   <view class="order-info-type">
-                    <text>待服务</text>
+                    <text>{{ RESERVATION_STATUS_MAP[item.appointStatus] }}</text>
                   </view>
                 </view>
                 <view class="order-info-desc">
-                  <view class="desc-title"><text>【手部本甲】本甲任意款式</text></view>
-                  <view class="desc-price"><text>价格: ￥99</text></view>
-                  <view class="desc-time"><text>创建时间: 2025-04-30 11:20:00</text></view>
-                  <view class="desc-time"><text>预约时间: 2025-05-01 11:00:00</text></view>
-                  <view class="desc-time"><text>取消时间: 2025-05-01 11:00:00</text></view>
-                  <view class="desc-time"><text>过期时间: 2025-05-01 11:00:00</text></view>
+                  <view class="desc-title">
+                    <text>【{{ item.name }}】{{ item.activity }}</text>
+                  </view>
+                  <view class="desc-price">
+                    <text>价格: ￥{{ item.price }}</text>
+                  </view>
+                  <view class="desc-time">
+                    <text>创建时间: {{ item.createTime }}</text>
+                  </view>
+                  <view class="desc-time">
+                    <text>预约时间: {{ item.createTime }}</text>
+                  </view>
+                  <view class="desc-time" v-if="item.appointStatus === 'used'">
+                    <text>完成时间: {{ item.updateTime }}</text>
+                  </view>
+                  <view class="desc-time" v-if="item.appointStatus === 'canceled'">
+                    <text>取消时间: {{ item.updateTime }}</text>
+                  </view>
+                  <view class="desc-time" v-if="item.appointStatus === 'canceled'">
+                    <text>过期时间: {{ item.updateTime }}</text>
+                  </view>
                 </view>
               </view>
-              <view class="button-box flex-row">
+              <view class="button-box flex-row" v-if="item.appointStatus === 'pending'">
                 <view
                   class="button-box-item flex-row"
                   style="margin-right: 14rpx; border: 1rpx solid #e3e3e3"
+                  @click="cancelOrder(item.id)"
                 >
                   <text>取消预约</text>
                 </view>
-                <view class="button-box-item flex-row" style="color: #ff7575; background: #ffecec">
+                <view
+                  class="button-box-item flex-row"
+                  style="color: #ff7575; background: #ffecec"
+                  @click="completeOrder(item.id)"
+                >
                   <text>完成服务</text>
                 </view>
               </view>
@@ -98,11 +120,24 @@
   import { useUserInfoStore } from '@/stores'
   import { onShow } from '@dcloudio/uni-app'
   import { login } from '@/services/user'
+  import { cancelReservation, confirmReservation, getReservationList } from '@/services/reservation'
+  import type { ReservationServiceList } from '@/types/reservation'
 
   interface orderListType {
     title: string
     type: string
   }
+
+  interface ReservationType {
+    [key: string]: string
+  }
+
+  const RESERVATION_STATUS_MAP: ReservationType = {
+    '': '全部',
+    pending: '待服务',
+    used: '已服务',
+    canceled: '已过期/已取消',
+  } as const
 
   const userInfoState = useUserInfoStore()
 
@@ -123,6 +158,7 @@
         try {
           // 使用 code 调用后台登录接口
           const data = await login(res.code)
+          console.log('登录成功', data)
           uni.showToast({
             title: '登录成功',
             icon: 'success',
@@ -153,16 +189,75 @@
     })
   }
 
-  const currentOrderType = ref('all')
-
+  const currentOrderType = ref('')
+  const reservationList = ref<ReservationServiceList[]>()
+  /**
+   * 切换订单类型
+   * @param item 订单类型对象
+   */
   const changeOrderType = (item: orderListType) => {
     currentOrderType.value = item.type
+    getReservationListData()
+  }
+
+  /**
+   * 取消订单
+   * @param id 订单ID
+   */
+  const cancelOrder = async (id: number): Promise<void> => {
+    try {
+      await cancelReservation(id)
+      await getReservationListData()
+      uni.showToast({
+        title: '取消订单成功',
+        icon: 'success',
+        duration: 2000,
+      })
+    } catch (error: any) {
+      uni.showToast({
+        title: error?.msg || '取消订单失败',
+        icon: 'none',
+        duration: 2000,
+      })
+    }
+  }
+
+  /**
+   * 完成订单
+   * @param id 订单ID
+   */
+  const completeOrder = async (id: number): Promise<void> => {
+    try {
+      await confirmReservation(id)
+      await getReservationListData()
+      uni.showToast({
+        title: '完成订单成功',
+        icon: 'success',
+        duration: 2000,
+      })
+    } catch (error: any) {
+      uni.showToast({
+        title: error?.msg || '完成订单失败',
+        icon: 'none',
+        duration: 2000,
+      })
+    }
+  }
+
+  //  获取预约列表数据
+  const getReservationListData = async (): Promise<void> => {
+    const data = await getReservationList({
+      appointStatus: currentOrderType.value,
+      pageNum: pageNum.value,
+    })
+    reservationList.value = data
+    console.log('预约列表数据', data)
   }
 
   const triggered = ref(true) // 触发状态
   const freshing = ref(false)
   const isOpenRefresh = ref(true) // 是否开启下拉
-  const pageSize = ref(0) // 页码
+  const pageNum = ref(0) // 页码
 
   // 下拉刷新
   const onRefresh = (): void => {
@@ -173,7 +268,7 @@
     if (!triggered.value) {
       triggered.value = true
     }
-    pageSize.value = 0
+    pageNum.value = 0
     setTimeout(() => {
       triggered.value = false
       freshing.value = false
@@ -187,31 +282,31 @@
 
   //  上拉加载
   const onReachScollBottom = (): void => {
-    pageSize.value++
+    pageNum.value++
   }
 
   // 订单类型
   const orderList: orderListType[] = [
     {
       title: '全部',
-      type: 'all',
+      type: '',
     },
     {
       title: '待服务',
-      type: '',
+      type: 'pending',
     },
     {
       title: '已服务',
-      type: '',
+      type: 'used',
     },
     {
       title: '过期/取消',
-      type: '',
+      type: 'canceled',
     },
   ]
 
-  onShow(() => {
-    console.log('onShow', userInfoState)
+  onShow(async () => {
+    getReservationListData()
   })
 </script>
 
