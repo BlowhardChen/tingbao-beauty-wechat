@@ -103,12 +103,13 @@
   import SuccessPopup from '@/components/common/success-popup.vue'
   import CalenDar from '@/components/common/calendar.vue'
   import { computed, reactive, ref } from 'vue'
-  import { useProjectInfoStore } from '@/stores'
+  import { useProjectInfoStore, useUserInfoStore } from '@/stores'
 
   import { debounce } from '@/utils'
   import { addReservation } from '@/services/reservation'
 
   const projectInfoStore = useProjectInfoStore()
+  const userInfoState = useUserInfoStore()
 
   const calendarRef = ref<InstanceType<typeof CalenDar> | null>(null)
 
@@ -189,6 +190,16 @@
 
   // 立即预约
   const clickReservationNow = debounce(async (): Promise<void> => {
+    if (!userInfoState.userInfo) {
+      uni.showToast({
+        title: '请先登录',
+        icon: 'none',
+      })
+      uni.switchTab({
+        url: '/pages/my/index',
+      })
+      return
+    }
     const phone = reservationForm.phone.trim()
     // 正则校验：以1开头，第二位是3-9，然后后面9位数字，共11位
     const phoneReg = /^1[3-9]\d{9}$/

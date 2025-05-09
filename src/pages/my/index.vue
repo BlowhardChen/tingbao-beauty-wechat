@@ -103,6 +103,7 @@
                   class="button-box-item flex-row"
                   style="color: #ff7575; background: #ffecec"
                   @click="completeOrder(item.id)"
+                  v-if="userInfoState.userInfo?.userId <= 3"
                 >
                   <text>完成服务</text>
                 </view>
@@ -165,6 +166,7 @@
           })
           useUserInfoStore().setToken(data.token)
           useUserInfoStore().setUserInfoData(data.userinfo)
+          await getReservationListData()
         } catch (error: any) {
           showLoginFail(error?.msg || '登录失败，请稍后重试')
         }
@@ -306,7 +308,9 @@
   ]
 
   onShow(async () => {
-    getReservationListData()
+    if (userInfoState.userInfo) {
+      await getReservationListData()
+    }
   })
 </script>
 
