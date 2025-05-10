@@ -11,7 +11,8 @@
       "path": "pages/reservation/index",
       "style": {
         "navigationBarTitleText": "预约"
-      }
+      },
+      "lazyCodeLoading": "requiredComponents"
     },
     {
       "path": "pages/my/index",

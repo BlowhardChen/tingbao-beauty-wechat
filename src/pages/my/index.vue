@@ -54,62 +54,76 @@
             @refresherrestore="onRestore"
             @scrolltolower="onReachScollBottom"
           >
-            <view class="order-lsit-item" v-for="(item, index) in reservationList" :key="index">
-              <view class="order-info flex-row">
-                <view class="order-info-image">
-                  <image
-                    class="avatar-img"
-                    :src="item.image_url"
-                    referrer="no-referrer|origin|unsafe-url"
-                    mode="scaleToFill"
-                  />
-                  <view class="order-info-type">
-                    <text>{{ RESERVATION_STATUS_MAP[item.appointStatus] }}</text>
+            <view v-if="reservationList?.length">
+              <view class="order-lsit-item" v-for="(item, index) in reservationList" :key="index">
+                <view class="order-info flex-row">
+                  <view class="order-info-image">
+                    <image
+                      class="avatar-img"
+                      :src="item.image_url"
+                      referrer="no-referrer|origin|unsafe-url"
+                      mode="scaleToFill"
+                    />
+                    <view class="order-info-type">
+                      <text>{{ RESERVATION_STATUS_MAP[item.appointStatus] }}</text>
+                    </view>
+                  </view>
+                  <view class="order-info-desc">
+                    <view class="desc-title">
+                      <text>【{{ item.name }}】{{ item.activity }}</text>
+                    </view>
+                    <view class="desc-price">
+                      <text>价格: ￥{{ item.price }}</text>
+                    </view>
+                    <view class="desc-time">
+                      <text>创建时间: {{ item.createTime }}</text>
+                    </view>
+                    <view class="desc-time">
+                      <text>预约时间: {{ item.createTime }}</text>
+                    </view>
+                    <view class="desc-time" v-if="item.appointStatus === 'used'">
+                      <text>完成时间: {{ item.updateTime }}</text>
+                    </view>
+                    <view class="desc-time" v-if="item.appointStatus === 'canceled'">
+                      <text>取消时间: {{ item.updateTime }}</text>
+                    </view>
+                    <view class="desc-time" v-if="item.appointStatus === 'expire'">
+                      <text>过期时间: {{ item.updateTime }}</text>
+                    </view>
                   </view>
                 </view>
-                <view class="order-info-desc">
-                  <view class="desc-title">
-                    <text>【{{ item.name }}】{{ item.activity }}</text>
+                <view class="button-box flex-row" v-if="item.appointStatus === 'pending'">
+                  <view
+                    class="button-box-item flex-row"
+                    style="margin-right: 14rpx; border: 1rpx solid #e3e3e3"
+                    @click="cancelOrder(item.id)"
+                  >
+                    <text>取消预约</text>
                   </view>
-                  <view class="desc-price">
-                    <text>价格: ￥{{ item.price }}</text>
+                  <view
+                    class="button-box-item flex-row"
+                    style="color: #ff7575; background: #ffecec"
+                    @click="completeOrder(item.id)"
+                    v-if="userInfoState.userInfo?.role === 'admin'"
+                  >
+                    <text>完成服务</text>
                   </view>
-                  <view class="desc-time">
-                    <text>创建时间: {{ item.createTime }}</text>
-                  </view>
-                  <view class="desc-time">
-                    <text>预约时间: {{ item.createTime }}</text>
-                  </view>
-                  <view class="desc-time" v-if="item.appointStatus === 'used'">
-                    <text>完成时间: {{ item.updateTime }}</text>
-                  </view>
-                  <view class="desc-time" v-if="item.appointStatus === 'canceled'">
-                    <text>取消时间: {{ item.updateTime }}</text>
-                  </view>
-                  <view class="desc-time" v-if="item.appointStatus === 'canceled'">
-                    <text>过期时间: {{ item.updateTime }}</text>
-                  </view>
-                </view>
-              </view>
-              <view class="button-box flex-row" v-if="item.appointStatus === 'pending'">
-                <view
-                  class="button-box-item flex-row"
-                  style="margin-right: 14rpx; border: 1rpx solid #e3e3e3"
-                  @click="cancelOrder(item.id)"
-                >
-                  <text>取消预约</text>
-                </view>
-                <view
-                  class="button-box-item flex-row"
-                  style="color: #ff7575; background: #ffecec"
-                  @click="completeOrder(item.id)"
-                  v-if="userInfoState.userInfo?.userId <= 3"
-                >
-                  <text>完成服务</text>
                 </view>
               </view>
             </view>
+            <view v-else class="no-data flex-col">
+              <view class="data-image">
+                <image src="/static/my/empty.png" mode="scaleToFill" />
+              </view>
+              <text>暂无订单</text>
+            </view>
           </scroll-view>
+          <view v-else class="no-data flex-col">
+            <view class="data-image">
+              <image src="/static/my/empty.png" mode="scaleToFill" />
+            </view>
+            <text>请登录后查看订单</text>
+          </view>
         </view>
       </view>
     </view>
@@ -138,6 +152,7 @@
     pending: '待服务',
     used: '已服务',
     canceled: '已过期/已取消',
+    expire: '已过期/已取消',
   } as const
 
   const userInfoState = useUserInfoStore()
@@ -198,6 +213,14 @@
    * @param item 订单类型对象
    */
   const changeOrderType = (item: orderListType) => {
+    if (!userInfoState.userInfo) {
+      uni.showToast({
+        title: '请先登录',
+        icon: 'none',
+        duration: 2000,
+      })
+      return
+    }
     currentOrderType.value = item.type
     getReservationListData()
   }
@@ -251,9 +274,17 @@
     const data = await getReservationList({
       appointStatus: currentOrderType.value,
       pageNum: pageNum.value,
+      pageSize: 10,
     })
-    reservationList.value = data
-    console.log('预约列表数据', data)
+    if (!data?.length) {
+      uni.showToast({ title: '暂无更多订单数据', icon: 'none', duration: 2000 })
+      return
+    }
+    if (pageNum.value === 0) {
+      reservationList.value = data
+    } else {
+      reservationList.value = reservationList.value?.concat(data)
+    }
   }
 
   const triggered = ref(true) // 触发状态
@@ -274,6 +305,7 @@
     setTimeout(() => {
       triggered.value = false
       freshing.value = false
+      getReservationListData()
     }, 500)
   }
 
@@ -285,6 +317,7 @@
   //  上拉加载
   const onReachScollBottom = (): void => {
     pageNum.value++
+    getReservationListData()
   }
 
   // 订单类型
@@ -514,5 +547,22 @@
     font-weight: 400;
     color: #666;
     border-radius: 32rpx;
+  }
+
+  .no-data {
+    align-items: center;
+    margin-top: 25%;
+  }
+
+  .data-image {
+    width: 174rpx;
+    height: 158rpx;
+  }
+
+  .no-data text {
+    margin-top: 20rpx;
+    font-size: 30rpx;
+    font-weight: 400;
+    color: #999;
   }
 </style>

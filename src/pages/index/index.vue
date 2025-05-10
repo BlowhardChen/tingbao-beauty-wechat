@@ -42,6 +42,7 @@
               <view class="price">
                 <text style="font-size: 28rpx">￥</text>
                 <text>{{ manicureInfo[1].price }}</text>
+                <text style="font-size: 28rpx">起</text>
               </view>
               <view class="button flex-row" @click="clickReservationNow(manicureInfo[1])">
                 <text>立即预约</text>
@@ -90,6 +91,7 @@
               <view class="price">
                 <text style="font-size: 28rpx">￥</text>
                 <text>{{ beautifulEyelashesInfo[1].price }}</text>
+                <text style="font-size: 28rpx">起</text>
               </view>
               <view class="button flex-row" @click="clickReservationNow(beautifulEyelashesInfo[1])">
                 <text>立即预约</text>

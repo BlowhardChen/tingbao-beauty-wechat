@@ -10,6 +10,7 @@ export interface GlobalUser {
   nickName: string
   avatar: string
   mobile: string
+  role: string
   createTime: string
   loginDate: string
 }

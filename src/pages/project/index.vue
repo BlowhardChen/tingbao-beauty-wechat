@@ -50,6 +50,11 @@
                 <view class="price">
                   <text style="font-size: 28rpx">￥</text>
                   <text>{{ item.price }}</text>
+                  <text
+                    style="font-size: 28rpx"
+                    v-if="(item.price === 128 && item.name === '手部延长甲') || item.price === 158"
+                    >起</text
+                  >
                 </view>
                 <view class="button" @click="selectProject(item)">选择</view>
               </view>
