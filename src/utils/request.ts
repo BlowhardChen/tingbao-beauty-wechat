@@ -1,7 +1,7 @@
 import { useUserInfoStore } from '@/stores'
 
 /** API 基础地址 */
-const BASE_URL = 'https://shuyiduo.online/api/'
+const BASE_URL = 'https://tingbaomeiye.online/api'
 
 /** 后端响应结构泛型 */
 interface ApiResponse<T = any> {

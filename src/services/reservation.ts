@@ -39,7 +39,8 @@ export const confirmReservation = (id: number) =>
 export const getReservationList = (data: {
   appointStatus?: 'pending' | 'used' | 'canceled' | string
   userId?: number
-  pageNum?: number
+  pageNum: number
+  pageSize: number
 }) =>
   http<ReservationServiceList[]>({
     url: '/wxapp/appAppointReservation/list',

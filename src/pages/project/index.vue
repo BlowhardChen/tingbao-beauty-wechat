@@ -113,12 +113,16 @@
       type: '',
     },
     {
-      title: '美甲',
+      title: '手部美甲',
       type: 1,
     },
     {
       title: '美睫',
       type: 2,
+    },
+    {
+      title: '足部美甲',
+      type: 3,
     },
   ]
 
