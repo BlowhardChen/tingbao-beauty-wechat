@@ -17,5 +17,6 @@ export interface ProjectList {
   updateTime: string
   updateBy: string
   remark: string
-  isHome: true
+  isHome: boolean
+  up: boolean
 }

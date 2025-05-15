@@ -13,7 +13,18 @@
       <view class="search">
         <view class="search-box flex-row">
           <image src="@/static/project/icon-search.png" mode="scaleToFill" />
-          <input type="text" placeholder="请输入搜索内容" />
+          <input
+            type="text"
+            v-model="searchWord"
+            placeholder="请输入搜索内容"
+            @confirm="searchProject(searchWord)"
+          />
+          <image
+            v-if="searchWord"
+            src="@/static/project/icon-close.png"
+            mode="scaleToFill"
+            @click="clearSearch"
+          />
         </view>
       </view>
       <!-- main -->
@@ -50,11 +61,7 @@
                 <view class="price">
                   <text style="font-size: 28rpx">￥</text>
                   <text>{{ item.price }}</text>
-                  <text
-                    style="font-size: 28rpx"
-                    v-if="(item.price === 128 && item.name === '手部延长甲') || item.price === 158"
-                    >起</text
-                  >
+                  <text style="font-size: 28rpx" v-if="item.up">起</text>
                 </view>
                 <view class="button" @click="selectProject(item)">选择</view>
               </view>
@@ -79,12 +86,23 @@
     uni.navigateBack()
   }
 
-  const currentSelectSidebar = ref<string | number>('')
+  const currentSelectSidebar = ref<string>('')
   const projectList = ref<ProjectList[]>([])
+  const searchWord = ref<string>('')
+  // 搜索项目
+  const searchProject = async (work: string): Promise<void> => {
+    await getProjectListData(work)
+  }
+
+  // 清空搜索
+  const clearSearch = async (): Promise<void> => {
+    searchWord.value = ''
+    await getProjectListData()
+  }
   // 选择侧边栏
-  const selectSidebar = (item: { title: string; type: string | number }) => {
+  const selectSidebar = (item: { title: string; type: string }) => {
     currentSelectSidebar.value = item.type
-    getProjectListData(item.type)
+    getProjectListData()
   }
 
   // 选择项目
@@ -100,9 +118,12 @@
   }
 
   // 获取项目列表
-  const getProjectListData = async (appointTypeId?: number | string): Promise<void> => {
+  const getProjectListData = async (name?: string): Promise<void> => {
     try {
-      const data = await getProjectList(appointTypeId)
+      const data = await getProjectList({
+        appointTypeId: currentSelectSidebar.value,
+        name,
+      })
       projectList.value = data
     } catch (error) {}
   }
@@ -114,15 +135,15 @@
     },
     {
       title: '手部美甲',
-      type: 1,
+      type: '1',
     },
     {
       title: '美睫',
-      type: 2,
+      type: '2',
     },
     {
       title: '足部美甲',
-      type: 3,
+      type: '3',
     },
   ]
 
