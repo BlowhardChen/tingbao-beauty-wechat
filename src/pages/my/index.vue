@@ -222,6 +222,10 @@
       return
     }
     currentOrderType.value = item.type
+    if (reservationList.value?.length) {
+      reservationList.value = []
+      pageNum.value = 1
+    }
     getReservationListData()
   }
 
@@ -280,7 +284,7 @@
       uni.showToast({ title: '暂无更多订单数据', icon: 'none', duration: 2000 })
       return
     }
-    if (pageNum.value === 0) {
+    if (pageNum.value === 1) {
       reservationList.value = data
     } else {
       reservationList.value = reservationList.value?.concat(data)
@@ -290,7 +294,7 @@
   const triggered = ref(true) // 触发状态
   const freshing = ref(false)
   const isOpenRefresh = ref(true) // 是否开启下拉
-  const pageNum = ref(0) // 页码
+  const pageNum = ref(1) // 页码
 
   // 下拉刷新
   const onRefresh = (): void => {
@@ -301,7 +305,7 @@
     if (!triggered.value) {
       triggered.value = true
     }
-    pageNum.value = 0
+    pageNum.value = 1
     setTimeout(() => {
       triggered.value = false
       freshing.value = false
