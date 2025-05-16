@@ -12,16 +12,23 @@
             <view class="avatar">
               <image
                 class="avatar-img"
-                src="/static/my/avatar.png"
+                :src="
+                  userInfoState.userInfo?.avatar
+                    ? userInfoState.userInfo?.avatar
+                    : '/static/my/avatar.png'
+                "
                 referrer="no-referrer|origin|unsafe-url"
                 mode="scaleToFill"
               />
             </view>
-            <view class="user-name" @click="goLogin">
-              <text>{{
+            <button
+              open-type="getPhoneNumber"
+              class="user-name"
+              @getphonenumber="loginPhoneLogin"
+              >{{
                 userInfoState.userInfo?.nickName ? userInfoState.userInfo.nickName : '请登录'
-              }}</text>
-            </view>
+              }}</button
+            >
           </view>
         </view>
       </view>
@@ -161,37 +168,48 @@
   const { safeAreaInsets } = uni.getSystemInfoSync()
 
   /**
-   * 发起微信登录流程，获取临时登录凭证并调用后台接口登录
+   * 手机号快捷登录
    */
-  const goLogin = () => {
-    // 调用 uni.login 获取临时登录凭证
-    uni.login({
-      provider: 'weixin',
-      success: async (res) => {
-        if (!res.code) {
-          return showLoginFail('微信登录失败，请稍后重试')
-        }
-        try {
-          // 使用 code 调用后台登录接口
-          const data = await login(res.code)
-          console.log('登录成功', data)
-          uni.showToast({
-            title: '登录成功',
-            icon: 'success',
-          })
-          useUserInfoStore().setToken(data.token)
-          useUserInfoStore().setUserInfoData(data.userinfo)
-          await getReservationListData()
-        } catch (error: any) {
-          showLoginFail(error?.msg || '登录失败，请稍后重试')
-        }
-      },
-
-      fail: (err) => {
-        console.error('微信登录接口调用失败', err)
-        showLoginFail('微信登录失败，请检查网络或稍后重试')
-      },
-    })
+  const loginPhoneLogin = async (e: any) => {
+    if (e.detail.errMsg === 'getPhoneNumber:ok') {
+      // 获取用户登录凭证 code
+      const code = e.detail.code
+      uni.login({
+        provider: 'weixin',
+        success: async (res) => {
+          if (!res.code) {
+            return showLoginFail('微信登录失败，请稍后重试')
+          }
+          try {
+            // 使用 code 调用后台登录接口
+            const data = await login({
+              code: res.code,
+              phoneCode: code,
+            })
+            uni.showToast({
+              title: '登录成功',
+              icon: 'success',
+            })
+            useUserInfoStore().setToken(data.token)
+            useUserInfoStore().setUserInfoData(data.userinfo)
+            await getReservationListData()
+          } catch (error: any) {
+            showLoginFail(error?.msg || '登录失败，请稍后重试')
+          }
+        },
+        fail: (err) => {
+          console.error('微信登录接口调用失败', err)
+          showLoginFail('微信登录失败，请检查网络或稍后重试')
+        },
+      })
+    } else {
+      // 用户拒绝授权
+      console.log('用户拒绝授权获取手机号')
+      uni.showToast({
+        title: '登录失败，未获得手机号授权',
+        icon: 'none',
+      })
+    }
   }
 
   /**
@@ -424,6 +442,7 @@
     font-size: 40rpx;
     font-weight: 500;
     color: #fff;
+    background-color: transparent;
   }
 
   .main {
