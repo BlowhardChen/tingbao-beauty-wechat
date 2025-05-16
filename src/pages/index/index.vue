@@ -10,7 +10,7 @@
         <view class="projiect-title">
           <image src="@/static/index/title-1.png" mode="scaleToFill" />
         </view>
-        <view class="projiect-content">
+        <view class="projiect-content" v-if="manicureInfo?.length">
           <view class="projiect-content-item flex-row">
             <view class="image">
               <image src="@/static/index/image1.png" mode="scaleToFill" />
@@ -24,7 +24,9 @@
               </view>
               <view class="price">
                 <text style="font-size: 28rpx">￥</text>
-                <text>{{ manicureInfo[0].price }}</text>
+                <text>{{
+                  manicureInfo[0]?.price === 88 ? manicureInfo[0]?.price : manicureInfo[1]?.price
+                }}</text>
               </view>
               <view class="button flex-row" @click="clickReservationNow(manicureInfo[0])">
                 <text>立即预约</text>
@@ -41,7 +43,9 @@
               </view>
               <view class="price">
                 <text style="font-size: 28rpx">￥</text>
-                <text>{{ manicureInfo[1].price }}</text>
+                <text>{{
+                  manicureInfo[1]?.price === 128 ? manicureInfo[1]?.price : manicureInfo[0]?.price
+                }}</text>
                 <text style="font-size: 28rpx">起</text>
               </view>
               <view class="button flex-row" @click="clickReservationNow(manicureInfo[1])">
@@ -59,7 +63,7 @@
         <view class="projiect-title">
           <image src="@/static/index/title-2.png" mode="scaleToFill" />
         </view>
-        <view class="projiect-content">
+        <view class="projiect-content" v-if="beautifulEyelashesInfo?.length">
           <view class="projiect-content-item flex-row">
             <view class="image">
               <image src="@/static/index/image3.png" mode="scaleToFill" />
@@ -73,7 +77,11 @@
               </view>
               <view class="price">
                 <text style="font-size: 28rpx">￥</text>
-                <text>{{ beautifulEyelashesInfo[0].price }}</text>
+                <text>{{
+                  beautifulEyelashesInfo[0]?.price === 128
+                    ? beautifulEyelashesInfo[0]?.price
+                    : beautifulEyelashesInfo[1]?.price
+                }}</text>
               </view>
               <view class="button flex-row" @click="clickReservationNow(beautifulEyelashesInfo[0])">
                 <text>立即预约</text>
@@ -90,7 +98,11 @@
               </view>
               <view class="price">
                 <text style="font-size: 28rpx">￥</text>
-                <text>{{ beautifulEyelashesInfo[1].price }}</text>
+                <text>{{
+                  beautifulEyelashesInfo[1]?.price === 158
+                    ? beautifulEyelashesInfo[1]?.price
+                    : beautifulEyelashesInfo[0]?.price
+                }}</text>
                 <text style="font-size: 28rpx">起</text>
               </view>
               <view class="button flex-row" @click="clickReservationNow(beautifulEyelashesInfo[1])">
@@ -132,8 +144,12 @@
   const getProjectInfo = async (): Promise<void> => {
     try {
       const data = await getProjectList()
-      manicureInfo.value = data.slice(0, 2)
-      beautifulEyelashesInfo.value = data.slice(-2)
+      // 从 data 中筛选出 isHome 为 true 的数据
+      const projectData = data.filter((item) => item.isHome === true)
+      // 从 projectData 中筛选出 name 包含“美甲”的数据
+      manicureInfo.value = projectData.filter((item) => item.name.includes('甲'))
+      // 从 projectData 中筛选出 name 包含“美睫”的数据
+      beautifulEyelashesInfo.value = projectData.filter((item) => item.name.includes('美睫'))
     } catch (error) {}
   }
 

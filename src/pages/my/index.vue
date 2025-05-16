@@ -222,6 +222,10 @@
       return
     }
     currentOrderType.value = item.type
+    if (reservationList.value?.length) {
+      reservationList.value = []
+      pageNum.value = 1
+    }
     getReservationListData()
   }
 
