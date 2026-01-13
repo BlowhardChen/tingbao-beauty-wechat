@@ -99,12 +99,11 @@
 </template>
 
 <script setup lang="ts">
-  import { onShow } from '@dcloudio/uni-app'
+  import { onShow, onUnload } from '@dcloudio/uni-app'
   import SuccessPopup from '@/components/common/success-popup.vue'
   import CalenDar from '@/components/common/calendar.vue'
   import { computed, reactive, ref } from 'vue'
   import { useProjectInfoStore, useUserInfoStore } from '@/stores'
-
   import { debounce } from '@/utils'
   import { addReservation } from '@/services/reservation'
 
@@ -113,16 +112,13 @@
 
   const calendarRef = ref<InstanceType<typeof CalenDar> | null>(null)
 
-  // 计算当前时间
-  const currentTime = new Date()
-  const currentHour = currentTime.getHours()
-
   // 营业时间：11:00 - 22:00
   const businessStartHour = 11
   const businessEndHour = 22
 
-  // 计算营业状态
+  // ✅ 修改点：修复营业状态实时计算，每次都获取最新时间，不是页面加载的固定值
   const businessStatus = computed(() => {
+    const currentHour = new Date().getHours()
     if (currentHour >= businessStartHour && currentHour < businessEndHour) {
       return { text: '营业中', colorClass: 'business-open' }
     } else {
@@ -177,13 +173,12 @@
   // 选择项目
   const selectProject = (): void => {
     uni.navigateTo({
-      url: '/pages/project/index',
+      url: '/pages/project/project',
     })
   }
 
   // 选择时间
   const selectTime = (data: any): void => {
-    console.log('selectTime', data)
     reservationForm.date = data.date
     reservationParams.appointTimeId = data.time.id
   }
@@ -195,9 +190,11 @@
         title: '请先登录',
         icon: 'none',
       })
-      uni.switchTab({
-        url: '/pages/my/index',
-      })
+      setTimeout(() => {
+        uni.switchTab({
+          url: '/pages/my/my',
+        })
+      }, 1500)
       return
     }
     const phone = reservationForm.phone.trim()
@@ -246,23 +243,33 @@
   const viewReservation = (): void => {
     closePopup()
     uni.switchTab({
-      url: '/pages/my/index',
+      url: '/pages/my/my',
     })
   }
 
+  const handleSelectProject = (data: any) => {
+    console.log('handleSelectProject', data)
+    reservationForm.project = `${data.project.name}${data.project.activity}`
+    reservationParams.appointProjectId = data.project.projectId
+  }
+
+  uni.$on('selectProject', handleSelectProject)
+
   onShow(() => {
+    if (projectInfoStore.projectInfo) {
+      reservationParams.appointProjectId = projectInfoStore.projectInfo
+        .projectId as unknown as string
+      reservationForm.project = `${projectInfoStore.projectInfo.name}${projectInfoStore.projectInfo.activity}`
+    }
+
     if (!reservationParams.appointProjectId) {
+      console.log('reservationParams.appointProjectId', reservationParams.appointProjectId)
       calendarRef.value?.handleOnShowLogic()
     }
+  })
 
-    if (projectInfoStore.projectInfo) {
-      reservationForm.project = projectInfoStore.projectInfo.name
-    }
-
-    uni.$on('selectProject', (data) => {
-      reservationForm.project = `${data.project.name}${data.project.activity}`
-      reservationParams.appointProjectId = data.project.projectId
-    })
+  onUnload(() => {
+    uni.$off('selectProject', handleSelectProject)
   })
 </script>
 
@@ -343,16 +350,6 @@
     font-size: 20rpx;
     color: rgb(8 174 60 / 80%);
     background-color: rgb(8 174 60 / 10%);
-    border-radius: 16rpx;
-  }
-
-  /* 休息时的样式 */
-  .business-closed {
-    padding: 0 16rpx;
-    margin-right: 8rpx;
-    font-size: 20rpx;
-    color: rgb(170 170 170); /* 灰色 */
-    background-color: rgb(170 170 170 / 20%); /* 灰色背景 */
     border-radius: 16rpx;
   }
 
