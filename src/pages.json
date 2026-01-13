@@ -8,21 +8,21 @@
       }
     },
     {
-      "path": "pages/reservation/index",
+      "path": "pages/reservation/reservation",
       "style": {
         "navigationBarTitleText": "预约"
       },
       "lazyCodeLoading": "requiredComponents"
     },
     {
-      "path": "pages/my/index",
+      "path": "pages/my/my",
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "我的"
       }
     },
     {
-      "path": "pages/project/index",
+      "path": "pages/project/project",
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "服务项目"
@@ -50,13 +50,13 @@
       },
       {
         "text": "预约",
-        "pagePath": "pages/reservation/index",
+        "pagePath": "pages/reservation/reservation",
         "iconPath": "static/tabbar/icon-reservation.png",
         "selectedIconPath": "static/tabbar/icon-reservation-active.png"
       },
       {
         "text": "我的",
-        "pagePath": "pages/my/index",
+        "pagePath": "pages/my/my",
         "iconPath": "static/tabbar/icon-my.png",
         "selectedIconPath": "static/tabbar/icon-my-active.png"
       }

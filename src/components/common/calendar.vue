@@ -10,7 +10,10 @@
         v-for="date in dateOptions"
         :key="date.key"
         class="date-tab flex-col"
-        :class="{ active: selectedDate === date.key }"
+        :class="{
+          active: selectedDate === date.key,
+          disabled: isDateDisabled(date.key),
+        }"
         @click="handleDateSelect(date)"
       >
         <view class="date-label">
@@ -25,20 +28,21 @@
     <!-- 时间选择区域 -->
     <view class="time-grid flex-row">
       <view
-        v-for="time in currentTimes"
-        :key="selectedDate + '-' + time.time"
+        v-for="item in currentTimes"
+        :key="selectedDate + '-' + item.time"
         class="time-slot flex-col"
         :class="{
-          full: time.alreadyCount >= 2,
-          active: isTimeActive(time),
+          full: item.alreadyCount >= 2,
+          active: isTimeActive(item),
+          timedisabled: isTimeSlotDisabled(item),
         }"
-        @click="handleTimeSelect(time)"
+        @click="handleTimeSelect(item)"
       >
-        <view class="active-icon" v-if="isTimeActive(time)">
+        <view class="active-icon" v-if="isTimeActive(item)">
           <image src="@/static/reservation/icon-active.png" mode="scaleToFill" />
         </view>
-        <text>{{ time.time }}</text>
-        <view v-if="time.alreadyCount >= 2" class="full-tag">约满</view>
+        <text>{{ item.time }}</text>
+        <view v-if="item.alreadyCount >= 2" class="full-tag">约满</view>
       </view>
     </view>
 
@@ -79,6 +83,11 @@
   const isShowCalendar = ref(false)
   const selectedPopupDate = ref<Date | null>(null)
   const scheduleData = ref<Record<string, TimeSlot[]>>({})
+
+  const businessStartHour = 11
+  const businessEndHour = 22
+  const today = new Date()
+  const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
   /**
    * 格式化日期
@@ -138,10 +147,38 @@
     ]
   })
 
+  // 判断日期是否过期禁用
+  const isDateDisabled = (dateKey: string) => {
+    if (dateKey === 'all') return false
+    return new Date(dateKey).getTime() < new Date(todayDateStr).getTime()
+  }
+
+  // 判断时间段是否过期禁用
+  const isTimeSlotDisabled = (time: TimeSlot) => {
+    // 约满的时段 直接禁用
+    if (time.alreadyCount >= 2) return true
+    // 不是今日 全部时段可用
+    if (selectedDate.value !== todayDateStr) return false
+    // 今日：判断当前时间是否已超过该时段
+    const currentHour = new Date().getHours()
+    const currentMinute = new Date().getMinutes()
+    const timeHour = Number(time.time.split(':')[0])
+    const timeMinute = Number(time.time.split(':')[1] || 0)
+    // 营业时间外的时段禁用
+    if (timeHour < businessStartHour || timeHour >= businessEndHour) return true
+    // 已过的时段禁用
+    if (currentHour > timeHour) return true
+    if (currentHour === timeHour && currentMinute > timeMinute) return true
+    // 其他情况可用
+    return false
+  }
+
   /**
    * 点击日期选项
    */
   const handleDateSelect = async (date: DateOption) => {
+    // 禁用的日期点击无反应
+    if (isDateDisabled(date.key)) return
     if (date.key === 'all') {
       isShowCalendar.value = true
     } else {
@@ -180,7 +217,7 @@
    * 选择时间槽
    */
   const handleTimeSelect = (time: TimeSlot) => {
-    if (time.alreadyCount >= 2) return
+    if (isTimeSlotDisabled(time)) return
     selectedTime.value = time.time
     emits('selectTime', { date: selectedDate.value, time })
   }
@@ -210,7 +247,7 @@
     } catch (error) {}
   }
 
-  // 页面加载时获取今天的预约数据
+  // 重置方法，用于父组件调用
   const handleOnShowLogic = async (): Promise<void> => {
     selectedTime.value = ''
     scheduleData.value = {}
@@ -220,12 +257,23 @@
     await getReservationTimeData(todayKey)
   }
 
+  // 缓存恢复方法，用于onShow返回时执行
+  const recoverCalendarState = async (): Promise<void> => {
+    if (selectedDate.value) {
+      if (!scheduleData.value[selectedDate.value]) {
+        await getReservationTimeData(selectedDate.value)
+      }
+    } else {
+      await handleOnShowLogic()
+    }
+  }
+
   defineExpose({
     handleOnShowLogic,
   })
 
   onShow(async () => {
-    await handleOnShowLogic()
+    await recoverCalendarState()
   })
 </script>
 
@@ -263,6 +311,13 @@
   .date-tab.active {
     color: white;
     background: #fe9393;
+  }
+
+  .date-tab.disabled {
+    color: #ccc;
+    pointer-events: none;
+    background: #f9f9f9;
+    opacity: 0.6;
   }
 
   .time-grid {
@@ -322,5 +377,12 @@
     right: 0;
     width: 44rpx;
     height: 30rpx;
+  }
+
+  .time-slot.timedisabled {
+    color: #ccc;
+    pointer-events: none;
+    background: #f9f9f9;
+    opacity: 0.6;
   }
 </style>

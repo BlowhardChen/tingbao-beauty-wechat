@@ -28,7 +28,7 @@
                   manicureInfo[0]?.price === 88 ? manicureInfo[0]?.price : manicureInfo[1]?.price
                 }}</text>
               </view>
-              <view class="button flex-row" @click="clickReservationNow(manicureInfo[0])">
+              <view class="button flex-row" @click="clickReservationNow(manicureInfo[1])">
                 <text>立即预约</text>
               </view>
             </view>
@@ -48,7 +48,7 @@
                 }}</text>
                 <text style="font-size: 28rpx">起</text>
               </view>
-              <view class="button flex-row" @click="clickReservationNow(manicureInfo[1])">
+              <view class="button flex-row" @click="clickReservationNow(manicureInfo[0])">
                 <text>立即预约</text>
               </view>
             </view>
@@ -137,7 +137,7 @@
    */
   const clickReservationNow = (item: ProjectList): void => {
     projectInfoStore.setProjectInfoData(item)
-    uni.switchTab({ url: '/pages/reservation/index' })
+    uni.switchTab({ url: '/pages/reservation/reservation' })
   }
 
   // 获取项目列表信息
